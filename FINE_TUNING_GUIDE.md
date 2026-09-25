@@ -139,6 +139,13 @@ Goal: Identify which subsystem (OMLX/ML/params) needs tuning
 - P&L range: -2.2% to +2.97% per trade
 - Steady state achieved
 
+**Live Trading Status (v2.0.5):**
+- Real Bybit balance: $117.76 USDT
+- No open positions
+- Manual start/stop control (no auto-start)
+- Equity sampling: OPERATIONAL
+- Fee efficiency: 85% savings via POST_ONLY limit orders (0.01% maker vs 0.06% taker)
+
 ## 🔄 Training Loop
 
 1. **Live trading** generates real trade outcomes

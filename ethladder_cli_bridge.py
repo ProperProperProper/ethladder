@@ -36,11 +36,22 @@ def fetch_json(path: str) -> dict:
 
 
 def get_state() -> dict:
-    """Current trading state."""
+    """Current trading state: paper/live positions, equity, system health."""
+    positions = fetch_json("positions.json").get("positions", [])
+    system = fetch_json("system_metrics.json")
+
+    paper_pos = [p for p in positions if p.get("trading_mode") == "paper"]
+    live_pos = [p for p in positions if p.get("trading_mode") == "live"]
+
     return {
-        "positions": fetch_json("positions.json").get("positions", []),
-        "system_metrics": fetch_json("system_metrics.json"),
+        "positions": {
+            "paper": len(paper_pos),
+            "live": len(live_pos),
+            "details": positions,
+        },
+        "system_metrics": system,
         "symbol": SYMBOL,
+        "note": "Live equity sampling active when trading enabled",
     }
 
 

@@ -60,17 +60,25 @@ the bot starts the moment you log in, not before.
 
 **Single Unified Master Dashboard** at `http://127.0.0.1:8731/console`
 
-### 7 Tabs:
+### 8 Tabs:
 
 1. **🧠 OMLX Learning** - ML metrics, patterns, training cycles
 2. **📄 Paper Trading** - Simulated trades, recent results, P&L
 3. **📊 Backtest Results** - Performance metrics, Sharpe ratio, profit factor
-4. **📍 Position Tracking** - Live open positions, entry/exit, unrealized P&L
-5. **↩️ Reverse Trading** - Counter-trend strategy performance
-6. **📈 Analytics** - Comparison charts, performance trends, system health
-7. **🖥️ System Status** - CPU, RAM, Disk, Temperature real-time
+4. **📍 Position Tracking** - Paper & live open positions, entry/exit, unrealized P&L
+5. **🔴 Live Trading** - Real Bybit orders, Start/Stop controls, equity tracking
+6. **💰 Funds Utilization** - Automated position sizing analysis (78-100% range)
+7. **📈 Analytics** - Comparison charts, performance trends, system health
+8. **🖥️ System Status** - CPU, RAM, Disk, Temperature real-time + 🔐 API Credentials manager
 
 **Updates every 15 seconds** from live JSON data.
+
+### Live Trading Features
+- **Manual control**: Start/Stop buttons (no auto-start unless position detected)
+- **Real money**: Executes on Bybit mainnet with actual $117+ USDT balance
+- **Fee efficient**: 85% savings via POST_ONLY limit orders (0.01% maker vs 0.06% taker)
+- **Equity tracking**: Monitors session P&L from margin balance + position tracking
+- **Credential manager**: Save/clear Bybit API keys via dashboard (stored in macOS Keychain)
 
 ## 🔄 Architecture — One Process, Nine Background Tasks
 
@@ -157,6 +165,37 @@ already folded in so retraining never re-ingests the same data twice.
 3. `ml_trainer` task retrains every 2 minutes
 4. Models improve from new data
 5. Dashboard shows progress in real time
+
+## 🎓 Learning Bridges — Teach Claude, OMLX, and Codex
+
+**Three bridges export bot data for LLM fine-tuning and autonomous analysis:**
+
+### Claude CLI Bridge (`ethladder_cli_bridge.py`)
+```bash
+./ethladder_cli_bridge.py state          # Current positions, equity, system health
+./ethladder_cli_bridge.py omlx           # 10-D bounce analysis and patterns
+./ethladder_cli_bridge.py ml             # Model training status and trades
+./ethladder_cli_bridge.py backtest       # Walk-forward validation results
+./ethladder_cli_bridge.py watch --interval 5  # Live monitoring
+./ethladder_cli_bridge.py export         # Full data export for fine-tuning
+```
+
+### Codex MCP Bridge (`Codex/.integrations/smart-model-router/ethladder_bot_mcp.py`)
+```
+@ask "get_ethladder_state"           # Query bot state in Codex
+@ask "get_omlx_learning"             # Get OMLX metrics
+@ask "get_ml_training"               # Get model training data
+@ask "get_walk_forward_results"      # Get backtest validation
+@ask "get_trading_performance"       # Complete snapshot
+```
+
+### OMLX Local Model Bridge (`Codex/.integrations/smart-model-router/ethladder_omlx_bridge.py`)
+```bash
+./ethladder_omlx_bridge.py                      # Interactive mode
+./ethladder_omlx_bridge.py "What's the bounce?" # Query mode
+```
+
+**See [LEARNING_BRIDGES_README.md](LEARNING_BRIDGES_README.md) for full documentation.**
 
 ## ⚡ CPU Management
 

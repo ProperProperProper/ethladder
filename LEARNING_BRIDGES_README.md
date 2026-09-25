@@ -128,9 +128,10 @@ curl -X POST http://127.0.0.1:8000/v1/responses \
 
 ### Bot State
 - Open positions (paper & live)
-- Trading mode (disabled/trading)
+- Trading mode (disabled/trading/live)
 - System metrics (CPU, memory, disk)
-- Available balance
+- Available balance ($117.76 USDT live balance, verified)
+- Equity sampling (session start → current P&L tracking)
 
 ### OMLX Learning
 - Current bounce probability (%)

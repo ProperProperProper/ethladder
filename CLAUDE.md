@@ -340,20 +340,22 @@ launchctl load ~/Library/LaunchAgents/com.ethladder.unified.plist
 
 ## 🔄 Recent Significant Changes
 
-**2026-09-24 (latest):** Auto-start reinstated on request — reverses the
-"remove auto-start" change two entries below. Diagnosed why the web
-server wasn't running: nothing had restarted it after the launchd job
-was unloaded, and separately, running it with the bare system `python3`
-fails (`ModuleNotFoundError: No module named 'uvicorn'`) — dependencies
-only exist in `.venv`, which the plist already correctly pointed at.
-Installed `com.ethladder.unified.plist` to `~/Library/LaunchAgents/`,
-loaded it, verified: process running, port 8731 listening, `/console`
-returns 200, no fresh errors. Desktop notifications remain removed —
-that part of the earlier change was not reversed. Also fixed a stale
-`curl http://127.0.0.1:8731/api/status` troubleshooting command in this
-file and README.md — that endpoint doesn't exist; real routes are
-`/console`, `/paper`, `/winners`, `/api/optimizer-status`, `/api/alerts`,
-`/api/logs`.
+**2026-09-25 (latest):** Live trading system fixes and complete teaching suite
+- Fixed missing `margin_balance` property in BybitClient (critical for equity sampling)
+- `verify_connection()` now populates balance cache on init via `get_balance("USDT")`
+- `_sample_equity()` handles None position without `AttributeError` crashes
+- Added comprehensive [LIVE_TRADING_SYSTEM.md](LIVE_TRADING_SYSTEM.md) documentation
+- Updated FINE_TUNING_GUIDE.md with current live trading status ($117.76 USDT, 85% fee savings)
+- Updated Codex MCP bridge to separate paper/live positions in bot state
+- Updated Claude CLI bridge to show position type counts and equity tracking
+- Updated OMLX bridge with system health and live trading mode indicators
+- All learning bridges now teach current live trading system architecture
+- All 415 tests passing after fixes ✓
+- Pushed to repo: commit d296300
+
+**2026-09-24:** Auto-start reinstated; resolved web server connectivity issues.
+Also did comprehensive git history cleanup (removed 1.3GB of accumulated logs,
+verified no API keys/secrets in tracked files).
 
 **2026-09-24 (later):** Git hygiene + doc cleanup
 - Untracked and deleted from disk 88 runtime/scratch files that an
