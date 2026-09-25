@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="refresh" content="15">
+<title>EthLadder — Winners</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: -apple-system, system-ui, sans-serif; max-width: 1080px; margin: 2rem auto; padding: 0 1rem; }
+  h1 { font-size: 1.4rem; margin-bottom: 0.2rem; }
+  nav a { text-decoration: none; margin-right: 0.4rem; }
+  .subtitle { color: #888; margin-bottom: 1.5rem; }
+  .winner-card { border: 1px solid #8883; border-radius: 8px; padding: 1rem 1.2rem; margin-bottom: 1.2rem; }
+  .winner-card h2 { margin: 0 0 0.4rem 0; font-size: 1.1rem; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.6rem; margin: 0.8rem 0; }
+  .stat { background: #8881; border-radius: 8px; padding: 0.5rem 0.7rem; }
+  .stat .label { font-size: 0.72rem; color: #888; }
+  .stat .value { font-size: 1.05rem; font-weight: 600; }
+  .positive { color: #1a7f37; }
+  .negative { color: #c62828; }
+  .params { font-size: 0.8rem; color: #888; font-family: ui-monospace, monospace; word-break: break-word; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-top: 0.6rem; }
+  th, td { text-align: left; padding: 0.3rem 0.5rem; border-bottom: 1px solid #8883; }
+  th { color: #888; font-weight: 500; }
+  .badge { padding: 0.1rem 0.5rem; border-radius: 10px; font-size: 0.72rem; }
+  .badge.search { background: #1a7f371a; color: #1a7f37; }
+  .badge.retest { background: #cc8a001a; color: #cc8a00; }
+  .badge.walk_forward { background: #1a5f9c1a; color: #1a5f9c; }
+  .no-data { color: #888; font-style: italic; }
+  .optimizer-panel { border: 1px solid #4a90d94d; border-radius: 8px; padding: 0.8rem 1rem; margin-bottom: 1.2rem; background: #4a90d90d; }
+  .optimizer-panel h2 { margin: 0 0 0.5rem; font-size: 1rem; }
+  .optimizer-panel .row { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 0.85rem; margin-bottom: 0.4rem; }
+  .optimizer-panel .row span.k { color: #888; }
+  .progress-track { background: #8883; border-radius: 6px; height: 10px; overflow: hidden; margin: 0.3rem 0 0.6rem; }
+  .progress-fill { background: #4a90d9; height: 100%; width: 0%; transition: width 0.4s; }
+  .pill { padding: 0.1rem 0.5rem; border-radius: 10px; font-size: 0.75rem; background: #8888881a; color: #888; }
+  .pill.state-searching { background: #4a90d91a; color: #4a90d9; }
+  .pill.state-fetching { background: #cc8a001a; color: #cc8a00; }
+  .pill.state-sleeping { background: #8888881a; color: #888; }
+  .pill.state-error { background: #c628281a; color: #c62828; }
+  .pill.state-starting { background: #cc8a001a; color: #cc8a00; }
+</style>
+</head>
+<body>
+  <h1>EthLadder</h1>
+  <nav style="margin-bottom:1rem;"><a href="/paper">Paper Trading</a> &nbsp;|&nbsp; <a href="/paper/reverse">Reverse Paper</a> &nbsp;|&nbsp; <a href="/winners"><strong>Winners</strong></a> &nbsp;|&nbsp; <a href="/console">Console</a></nav>
+  <p class="subtitle">Param library from the continuous optimizer — read-only. Page auto-refreshes every 15s.</p>
+
+  <div class="optimizer-panel">
+    <h2>Auto-optimizer <span id="opt-state" class="pill">…</span></h2>
+    <div class="row">
+      <div><span class="k">Symbol:</span> <span id="opt-symbol">—</span></div>
+      <div><span class="k">Interval under test:</span> <span id="opt-interval">—</span></div>
+      <div><span class="k">Cycle:</span> <span id="opt-cycle">—</span></div>
+      <div><span class="k">Real balance:</span> <span id="opt-balance">—</span></div>
+    </div>
+    <div id="opt-progress-wrap" hidden>
+      <div class="row"><span class="k">Walk-forward window:</span> <span id="opt-window">—</span></div>
+      <div class="row"><span class="k">Combos:</span> <span id="opt-combos">—</span></div>
+      <div class="progress-track"><div class="progress-fill" id="opt-progress-fill"></div></div>
+      <div class="row"><span class="k">Best so far:</span> <span id="opt-best-so-far">—</span></div>
+    </div>
+    <div class="row">
+      <div><span class="k">Last completed cycle's winning interval:</span> <span id="opt-last-winner">—</span></div>
+    </div>
+    <div class="row">
+      <div id="opt-last-summary" style="color:#888;">—</div>
+    </div>
+  </div>
+
+  {% if error %}
+  <p class="no-data" style="color:#c62828;">{{ error }}</p>
+  {% elif not winners %}
+  <p class="no-data">No winners recorded yet. Run scripts/continuous_optimizer.py to populate this.</p>
+  {% endif %}
+
+  {% for w in winners %}
+  <div class="winner-card">
+    <h2>{{ w.symbol }} @ {{ w.interval }} <span style="font-weight:400; color:#888;">— recorded {{ w.tested_at }}</span></h2>
+    <div class="stat-grid">
+      <div class="stat"><div class="label">Trades</div><div class="value">{{ w.out_of_sample_trade_count }}</div></div>
+      <div class="stat"><div class="label">Win rate</div><div class="value">{{ "%.1f"|format(w.out_of_sample_win_rate * 100) }}%</div></div>
+      <div class="stat">
+        <div class="label">Return</div>
+        <div class="value {{ 'positive' if w.out_of_sample_return_percent >= 0 else 'negative' }}">
+          {{ "%.2f"|format(w.out_of_sample_return_percent) }}% ({{ "%.2f"|format(w.out_of_sample_return_quote) }})
+        </div>
+      </div>
+      <div class="stat"><div class="label">Max drawdown</div><div class="value">{{ "%.2f"|format(w.max_drawdown_percent) }}%</div></div>
+      <div class="stat"><div class="label">Score</div><div class="value">{{ "%.1f"|format(w.in_sample_score) }}</div></div>
+      <div class="stat"><div class="label">Sharpe</div><div class="value">{{ "%.2f"|format(w.sharpe_ratio) if w.sharpe_ratio is not none else "—" }}</div></div>
+      <div class="stat"><div class="label">CAGR</div><div class="value">{{ "%.1f"|format(w.cagr_percent) if w.cagr_percent is not none else "—" }}%</div></div>
+      <div class="stat"><div class="label">Profit factor</div><div class="value">{{ w.profit_factor_display }}</div></div>
+      <div class="stat"><div class="label">Gross profit</div><div class="value positive">{{ "%.2f"|format(w.gross_profit_quote) if w.gross_profit_quote is not none else "—" }}</div></div>
+      <div class="stat"><div class="label">Gross loss</div><div class="value negative">{{ "%.2f"|format(w.gross_loss_quote) if w.gross_loss_quote is not none else "—" }}</div></div>
+      <div class="stat"><div class="label">Max win</div><div class="value positive">{{ "%.2f"|format(w.max_win_quote) if w.max_win_quote is not none else "—" }} ({{ "%.2f"|format(w.max_win_percent) if w.max_win_percent is not none else "—" }}%)</div></div>
+      <div class="stat"><div class="label">Max loss</div><div class="value negative">{{ "%.2f"|format(w.max_loss_quote) if w.max_loss_quote is not none else "—" }} ({{ "%.2f"|format(w.max_loss_percent) if w.max_loss_percent is not none else "—" }}%)</div></div>
+      <div class="stat"><div class="label">Avg win</div><div class="value positive">{{ "%.2f"|format(w.average_win_quote) if w.average_win_quote is not none else "—" }} ({{ "%.2f"|format(w.average_win_percent) if w.average_win_percent is not none else "—" }}%)</div></div>
+      <div class="stat"><div class="label">Avg loss</div><div class="value negative">{{ "%.2f"|format(w.average_loss_quote) if w.average_loss_quote is not none else "—" }} ({{ "%.2f"|format(w.average_loss_percent) if w.average_loss_percent is not none else "—" }}%)</div></div>
+      <div class="stat"><div class="label">Max win streak</div><div class="value">{{ w.max_win_streak if w.max_win_streak is not none else "—" }}</div></div>
+      <div class="stat"><div class="label">Max loss streak</div><div class="value">{{ w.max_loss_streak if w.max_loss_streak is not none else "—" }}</div></div>
+      <div class="stat"><div class="label">Total fees</div><div class="value">{{ "%.3f"|format(w.total_fees_quote) if w.total_fees_quote is not none else "—" }}</div></div>
+      <div class="stat"><div class="label">Total funding</div><div class="value">{{ "%.3f"|format(w.total_funding_quote) if w.total_funding_quote is not none else "—" }}</div></div>
+      <div class="stat"><div class="label">Liquidations</div><div class="value {{ 'negative' if w.liquidation_count }}">{{ w.liquidation_count if w.liquidation_count is not none else "—" }}</div></div>
+      <div class="stat"><div class="label">Avg trade duration</div><div class="value">{{ "%.1f"|format(w.average_trade_duration_hours) if w.average_trade_duration_hours is not none else "—" }}h</div></div>
+      <div class="stat"><div class="label">Avg safety orders used</div><div class="value">{{ "%.1f"|format(w.average_safety_orders_used) if w.average_safety_orders_used is not none else "—" }}</div></div>
+      <div class="stat"><div class="label">Starting equity</div><div class="value">{{ "%.2f"|format(w.starting_equity) if w.starting_equity is not none else "—" }}</div></div>
+      <div class="stat"><div class="label">Final equity</div><div class="value">{{ "%.2f"|format(w.final_equity) if w.final_equity is not none else "—" }}</div></div>
+    </div>
+    <div class="params">
+      {% for k, v in w.params.items() %}{{ k }}=<strong>{{ v }}</strong>&nbsp; {% endfor %}
+    </div>
+
+    {% set key = w.symbol ~ "|" ~ w.interval %}
+    {% if histories.get(key) %}
+    <table>
+      <thead><tr><th>When</th><th>Kind</th><th>Trades</th><th>Return %</th><th>Max DD %</th><th>Sharpe</th><th>PF</th><th>Liq</th><th>Winner?</th></tr></thead>
+      <tbody>
+        {% for h in histories[key] %}
+        <tr>
+          <td>{{ h.tested_at }}</td>
+          <td><span class="badge {{ h.run_kind }}">{{ h.run_kind }}</span></td>
+          <td>{{ h.out_of_sample_trade_count }}</td>
+          <td class="{{ 'positive' if h.out_of_sample_return_percent >= 0 else 'negative' }}">{{ "%.2f"|format(h.out_of_sample_return_percent) }}%</td>
+          <td>{{ "%.2f"|format(h.max_drawdown_percent) }}%</td>
+          <td>{{ "%.2f"|format(h.sharpe_ratio) if h.sharpe_ratio is not none else "—" }}</td>
+          <td>{{ h.profit_factor_display }}</td>
+          <td>{{ h.liquidation_count if h.liquidation_count is not none else "—" }}</td>
+          <td>{{ "✓" if h.is_current_winner else "" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  <script>
+    function fmtNum(n, digits) {
+      if (n === null || n === undefined) return "—";
+      return Number(n).toFixed(digits === undefined ? 2 : digits);
+    }
+    function fmtSummary(s) {
+      if (!s) return "—";
+      return "trades=" + s.trades + " win_rate=" + fmtNum(s.win_rate * 100, 1) + "%"
+        + " return=" + fmtNum(s.return_percent, 2) + "% max_dd=" + fmtNum(s.max_dd_percent, 2) + "%"
+        + " liq=" + s.liquidations + " sharpe=" + fmtNum(s.sharpe, 2);
+    }
+    async function pollOptimizerStatus() {
+      try {
+        const res = await fetch("/api/optimizer-status");
+        const s = await res.json();
+        const stateEl = document.getElementById("opt-state");
+        const state = s.state || "unknown";
+        stateEl.textContent = state;
+        stateEl.className = "pill state-" + state;
+
+        document.getElementById("opt-symbol").textContent = s.symbol || "—";
+        document.getElementById("opt-interval").textContent = s.interval || "—";
+        document.getElementById("opt-cycle").textContent = s.cycle || "—";
+        document.getElementById("opt-balance").textContent = s.real_available_balance
+          ? fmtNum(s.real_available_balance, 2) + " USDT" : "—";
+
+        const progressWrap = document.getElementById("opt-progress-wrap");
+        if (state === "searching" && s.combos_total) {
+          progressWrap.hidden = false;
+          document.getElementById("opt-window").textContent =
+            s.window_index && s.windows_total ? s.window_index + " / " + s.windows_total : "—";
+          document.getElementById("opt-combos").textContent = s.combos_done + " / " + s.combos_total;
+          const pct = (s.combos_done / s.combos_total) * 100;
+          document.getElementById("opt-progress-fill").style.width = pct + "%";
+          document.getElementById("opt-best-so-far").textContent = fmtSummary(s.best_so_far);
+        } else {
+          progressWrap.hidden = true;
+        }
+
+        document.getElementById("opt-last-winner").textContent = s.last_cycle_winning_interval || "—";
+        document.getElementById("opt-last-summary").textContent = fmtSummary(s.last_cycle_winning_summary);
+      } catch (e) {
+        document.getElementById("opt-state").textContent = "unreachable";
+      }
+    }
+    pollOptimizerStatus();
+    setInterval(pollOptimizerStatus, 3000);
+  </script>
+</body>
+</html>

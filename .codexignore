@@ -1,0 +1,9 @@
+.git/
+node_modules/
+artifacts/
+cache/
+out/
+dist/
+build/
+.venv/
+*.log

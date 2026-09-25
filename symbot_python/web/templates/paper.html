@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>EthLadder — Paper Trading</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: -apple-system, system-ui, sans-serif; max-width: 1080px; margin: 2rem auto; padding: 0 1rem; }
+  h1 { font-size: 1.4rem; margin-bottom: 0.2rem; }
+  nav a { text-decoration: none; }
+  .subtitle { color: #888; margin-bottom: 1.5rem; }
+  fieldset { border: 1px solid #ccc4; border-radius: 8px; padding: 1rem 1.2rem; margin-bottom: 1rem; }
+  legend { font-weight: 600; padding: 0 0.4rem; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.8rem; }
+  label { display: block; font-size: 0.85rem; margin-bottom: 0.2rem; }
+  input[type=text], input[type=number] { width: 100%; padding: 0.35rem; box-sizing: border-box; }
+  .checkbox-row { display: flex; align-items: center; gap: 0.4rem; }
+  .checkbox-row input { width: auto; }
+  button { padding: 0.5rem 1.2rem; font-size: 0.95rem; cursor: pointer; }
+  .error { background: #fee; border: 1px solid #f99; padding: 0.8rem; border-radius: 6px; color: #900; margin-bottom: 1rem; }
+  .warning-banner { background: #ffedcc; border: 1px solid #e0a030; padding: 0.6rem 0.9rem; border-radius: 6px; margin-bottom: 1rem; }
+  .balances { display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
+  .balance-chip { background: #8881; border-radius: 8px; padding: 0.5rem 0.9rem; font-size: 0.9rem; }
+  .bot-card { border: 1px solid #8883; border-radius: 8px; padding: 0.8rem 1rem; margin-bottom: 1rem; }
+  .bot-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+  .bot-header h3 { margin: 0; font-size: 1.05rem; }
+  .pill { padding: 0.1rem 0.5rem; border-radius: 10px; font-size: 0.75rem; }
+  .pill.active { background: #1a7f371a; color: #1a7f37; }
+  .pill.stopped { background: #8888881a; color: #888; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 0.6rem; }
+  th, td { text-align: left; padding: 0.3rem 0.5rem; border-bottom: 1px solid #8883; }
+  th { color: #888; font-weight: 500; }
+  .positive { color: #1a7f37; }
+  .negative { color: #c62828; }
+  .badge { padding: 0.1rem 0.5rem; border-radius: 10px; font-size: 0.75rem; }
+  .badge.closed { background: #8888881a; color: #888; }
+  .badge.monitoring { background: #1a7f371a; color: #1a7f37; }
+  .badge.filling { background: #cc8a001a; color: #cc8a00; }
+  form.inline { display: inline; }
+  .actions button { font-size: 0.8rem; padding: 0.25rem 0.6rem; margin-right: 0.3rem; }
+  .danger { background: #c62828; color: white; border: none; border-radius: 4px; }
+  .neutral { background: #8888; color: white; border: none; border-radius: 4px; }
+  .no-bots { color: #888; font-style: italic; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.8rem; margin-bottom: 1rem; }
+  .stat-card { background: #8881; border-radius: 8px; padding: 0.7rem 0.9rem; }
+  .stat-card .label { color: #888; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.03em; }
+  .stat-card .value { font-size: 1.25rem; font-weight: 600; margin-top: 0.15rem; }
+  .reason-chip { display: inline-block; background: #8881; border-radius: 10px; padding: 0.15rem 0.6rem; font-size: 0.8rem; margin: 0.1rem 0.3rem 0.1rem 0; }
+</style>
+</head>
+<body>
+  <h1>EthLadder</h1>
+  <nav style="margin-bottom:1rem;"><a href="/paper"><strong>Paper Trading</strong></a> &nbsp;|&nbsp; <a href="/paper/reverse">Reverse Paper</a> &nbsp;|&nbsp; <a href="/winners">Winners</a> &nbsp;|&nbsp; <a href="/console">Console</a></nav>
+  <p class="subtitle">Real live Bybit market data, simulated fills against a fake wallet — no real money at risk. Page refreshes the instant a trade closes or a deal opens.</p>
+
+  {% if error %}
+  <div class="error">{{ error }}</div>
+  {% endif %}
+
+  <div class="warning-banner">📝 Paper mode only. State is in-memory — restarting the server clears all bots/deals.</div>
+
+  <div class="balances">
+    {% for asset, amount in balances.items() %}
+    <div class="balance-chip"><strong>{{ asset }}</strong>: {{ "%.4f"|format(amount) }}</div>
+    {% endfor %}
+    {% if not balances %}
+    <div class="balance-chip">No balances yet</div>
+    {% endif %}
+  </div>
+
+  {% if circuit_breaker_active %}
+  <div class="warning-banner">
+    ⛔ Circuit breaker is ACTIVE — no new deals will start until cleared.
+    <form method="post" action="/paper/clear-circuit-breaker" style="display:inline; margin-left:0.6rem;">
+      <button type="submit" class="neutral">Clear circuit breaker</button>
+    </form>
+  </div>
+  {% endif %}
+
+  <fieldset>
+    <legend>Session telemetry {% if session.started_at %}<span style="font-weight:400; color:#888;">— since {{ session.started_at }}</span>{% endif %}</legend>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="label">Closed-trade P/L</div>
+        <div class="value {{ 'positive' if session.realized_pnl_quote >= 0 else 'negative' }}">
+          {{ "%.2f"|format(session.realized_pnl_quote) }}
+          {% if session.realized_pnl_percent is not none %}<span style="font-size:0.85rem;">({{ "%.2f"|format(session.realized_pnl_percent) }}%)</span>{% endif %}
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Open price P/L · before funding</div>
+        <div class="value {{ 'positive' if session.unrealized_pnl_quote >= 0 else 'negative' }}">{{ "%.2f"|format(session.unrealized_pnl_quote) }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Balance</div>
+        <div class="value">{{ "%.2f"|format(session.current_balance) }}</div>
+        {% if session.start_balance %}<div style="color:#888; font-size:0.75rem;">start: {{ "%.2f"|format(session.start_balance) }}</div>{% endif %}
+      </div>
+      <div class="stat-card">
+        <div class="label">Win rate</div>
+        <div class="value">
+          {% if session.win_rate_percent is not none %}{{ "%.1f"|format(session.win_rate_percent) }}%{% else %}—{% endif %}
+        </div>
+        <div style="color:#888; font-size:0.75rem;">{{ session.wins }}W / {{ session.losses }}L of {{ session.total_trades }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Profit factor</div>
+        <div class="value">{% if session.profit_factor is not none %}{{ "%.2f"|format(session.profit_factor) }}{% else %}—{% endif %}</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Closed-trade drawdown</div>
+        <div class="value">{% if session.max_drawdown_percent is not none %}{{ "%.2f"|format(session.max_drawdown_percent) }}%{% else %}—{% endif %}</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Best / worst trade</div>
+        <div class="value" style="font-size:1rem;">
+          <span class="positive">{% if session.best_trade_quote is not none %}{{ "%.2f"|format(session.best_trade_quote) }}{% else %}—{% endif %}</span>
+          /
+          <span class="negative">{% if session.worst_trade_quote is not none %}{{ "%.2f"|format(session.worst_trade_quote) }}{% else %}—{% endif %}</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Open deals</div>
+        <div class="value">{{ session.open_deal_count }}</div>
+      </div>
+    </div>
+    <h3>Account equity</h3>
+    <div id="equity-chart">{{ equity_chart | safe }}</div>
+    <p style="color:#888;font-size:0.8rem;">Realised P/L includes booked gains/losses, paid fees (including entry fees) and settled funding. Unrealised P/L includes open-position P/L less accrued funding. Equity = starting balance + realised + unrealised. Samples every 60 seconds; charts retain ~24 hours. Drawdown measures the fall from the highest sampled session equity; session peak and maximum drawdown survive chart rollover. Moves between samples may be missed. USDT and percentage maxima are tracked independently. Resets with the paper session.</p>
+    {% if session.reason_counts %}
+    <div style="margin-top:0.7rem;">
+      {% for reason, count in session.reason_counts.items() %}
+      <span class="reason-chip">{{ reason }}: {{ count }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </fieldset>
+
+  <fieldset>
+    <legend>Auto-managed params (ETH/USDT, 9x-11x, from the param library)</legend>
+    <p style="color:#888; font-size:0.85rem; margin-top:0;">
+      No manual entry — this always runs the continuous optimizer's current best winner,
+      auto-refreshed every {{ param_refresh_hours|int }}h. Use the button to hot-apply the latest params right now.
+    </p>
+    {% if param_sync %}
+      {% if param_sync.used_fallback %}
+      <p style="color:#cc8a00;">⚠ No winner recorded yet — running built-in fallback defaults until the optimizer finds one.</p>
+      {% else %}
+      <div class="grid">
+        <div><span style="color:#888; font-size:0.8rem;">Source interval</span><br><strong>{{ param_sync.source_interval }}</strong></div>
+        <div><span style="color:#888; font-size:0.8rem;">Score</span><br><strong>{{ "%.2f"|format(param_sync.source_score) if param_sync.source_score is not none else "—" }}</strong></div>
+        <div><span style="color:#888; font-size:0.8rem;">Winner tested at</span><br><strong>{{ param_sync.source_tested_at }}</strong></div>
+        <div><span style="color:#888; font-size:0.8rem;">Last synced</span><br><strong>{{ param_sync.synced_at|int }}</strong></div>
+      </div>
+      {% endif %}
+    {% endif %}
+    <form method="post" action="/paper/update-params" style="margin-top:0.8rem;">
+      <button type="submit">Update to latest params now</button>
+    </form>
+  </fieldset>
+
+  <h2>Bots</h2>
+  {% if not bots %}
+  <p class="no-bots">No paper bots running yet.</p>
+  {% endif %}
+
+  {% for b in bots %}
+  <div class="bot-card">
+    <div class="bot-header">
+      <h3>{{ b.bot_name }} — {{ b.pair }}</h3>
+      <div>
+        <span class="pill {{ 'active' if b.active else 'stopped' }}">{{ 'active' if b.active else 'stopped' }}</span>
+        {% if b.current_price %}<span style="margin-left:0.6rem; color:#888;">last: {{ "%.4f"|format(b.current_price) }}</span>{% endif %}
+        <span style="margin-left:0.6rem; color:#888;">deals started: {{ b.deal_count }}</span>
+        {% if b.active %}
+        <form class="inline" method="post" action="/paper/bots/{{ b.bot_id }}/stop">
+          <button type="submit" class="neutral">Stop bot</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    <div style="color:#888; font-size:0.8rem; margin-top:0.3rem;">
+      Optimizer settings: {{ b.side }} · {{ b.leverage|int }}x · TP {{ b.dca_take_profit_percent }}% · step {{ b.dca_order_step_percent }}% ×{{ b.dca_order_size_multiplier }}
+      · max SO {{ b.dca_max_order }} · SL {{ 'on' if b.dca_stop_loss_enabled else 'off' }}
+    </div>
+
+    {% if b.deals %}
+    <table style="font-size: 0.80rem;">
+      <thead>
+        <tr>
+          <th>Status</th>
+          <th>Side · Lev</th>
+          <th>Opened</th>
+          <th>Closed</th>
+          <th>Duration</th>
+          <th>Filled</th>
+          <th>Qty</th>
+          <th>Entry</th>
+          <th>Avg</th>
+          <th>Exit</th>
+          <th>Target</th>
+          <th>Notional</th>
+          <th>Margin %</th>
+          <th>Liq Price</th>
+          <th>Dist to Liq %</th>
+          <th>Unrealized %</th>
+          <th>Realized</th>
+          <th>Funding</th>
+          <th>Total P&L</th>
+          <th>Close Reason</th>
+          <th>Flags</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in b.deals %}
+        <tr style="border-top: 1px solid #8885;">
+          <td>
+            <span class="badge {{ d.status }}">{{ d.status }}</span>
+            {% if d.paused %}<br><span style="color:#cc8a00; font-size:0.75rem;">paused</span>{% endif %}
+          </td>
+          <td>{{ d.side|upper }} · {{ d.leverage|int }}x</td>
+          <td style="white-space:nowrap; font-size:0.80rem; color:#888;">{{ d.opened_at or "—" }}</td>
+          <td style="white-space:nowrap; font-size:0.80rem; color:#888;">{{ d.closed_at or "—" }}</td>
+          <td style="font-size:0.80rem; color:#888;">
+            {% if d.duration_seconds %}
+              {{ (d.duration_seconds // 3600)|int }}h {{ ((d.duration_seconds % 3600) // 60)|int }}m
+            {% else %}—{% endif %}
+          </td>
+          <td style="text-align:center;">{{ d.filled_count }}<span style="color:#888;">/{{ d.rung_count }}</span></td>
+          <td style="font-family:monospace;">{{ "%.4f"|format(d.qty) if d.qty else "—" }}</td>
+          <td style="font-family:monospace;">{{ "%.2f"|format(d.entry_price) if d.entry_price else "—" }}</td>
+          <td style="font-family:monospace;">{{ "%.2f"|format(d.average) if d.average else "—" }}</td>
+          <td style="font-family:monospace;">{{ "%.2f"|format(d.exit_price) if d.exit_price else "—" }}</td>
+          <td style="font-family:monospace;">{{ "%.2f"|format(d.target) if d.target else "—" }}</td>
+          <td style="font-family:monospace;">{{ "%.0f"|format(d.notional) if d.notional is not none else "—" }}</td>
+          <td style="font-family:monospace;">{{ "%.1f"|format(d.margin_percent) if d.margin_percent is not none else "—" }}%</td>
+          <td style="font-family:monospace;">{{ "%.2f"|format(d.liquidation_price) if d.liquidation_price else "—" }}</td>
+          <td style="font-family:monospace; {{ 'color:#c62828;' if d.liq_distance_percent and d.liq_distance_percent < 5 else '' }}">
+            {% if d.liq_distance_percent is not none %}
+              {{ "%.2f"|format(d.liq_distance_percent) }}%
+            {% else %}—{% endif %}
+          </td>
+          <td class="{{ 'positive' if d.unrealized_percent is not none and d.unrealized_percent >= 0 else 'negative' }}" style="font-family:monospace;">
+            {% if d.unrealized_percent is not none %}
+              {{ "%.2f"|format(d.unrealized_percent) }}%
+            {% else %}—{% endif %}
+          </td>
+          <td style="font-family:monospace;">
+            {% if d.sell_data and d.sell_data.get('realized_quote') %}
+              <span class="{{ 'positive' if d.sell_data.realized_quote >= 0 else 'negative' }}">
+                {{ "%.2f"|format(d.sell_data.realized_quote) }}
+              </span>
+            {% else %}—{% endif %}
+          </td>
+          <td style="font-family:monospace; color:#888;">
+            {% if d.funding_cost_quote %}
+              -{{ "%.2f"|format(d.funding_cost_quote) }}
+            {% else %}—{% endif %}
+          </td>
+          <td class="{{ 'positive' if d.sell_data and d.sell_data.total_pnl >= 0 else 'negative' }}" style="font-family:monospace; font-weight:600;">
+            {% if d.sell_data %}
+              <span class="{{ 'positive' if d.sell_data.profit_percent >= 0 else 'negative' }}">
+                {{ "%.2f"|format(d.sell_data.profit_percent) }}%
+              </span><br>
+              ({{ "%.2f"|format(d.sell_data.total_pnl) }} USDT)
+            {% else %}—{% endif %}
+          </td>
+          <td style="font-size:0.78rem;">
+            {% if d.sell_data %}
+              {% set reason = d.sell_data.get('reason', '?') %}
+              <span class="reason-chip">{{ reason }}</span>
+              {% if d.liquidated %}<br><span style="color:#c62828;">LIQUIDATED</span>{% endif %}
+              {% if d.stop_loss %}<br><span style="color:#cc8a00;">Stop loss</span>{% endif %}
+              {% if d.panic_sell %}<br><span style="color:#cc8a00;">Panic sold</span>{% endif %}
+              {% if d.canceled %}<br><span style="color:#888;">Canceled</span>{% endif %}
+            {% else %}—{% endif %}
+          </td>
+          <td style="font-size:0.75rem;">
+            {% if d.config.dca_stop_loss_enabled %}<span class="reason-chip">SL on</span>{% endif %}
+            {% if d.config.dca_trailing_stop_enabled %}<span class="reason-chip">Trail on</span>{% endif %}
+            {% if d.config.reverse_drawdown_percent %}<span class="reason-chip">Flip: {{ d.config.reverse_drawdown_percent }}%</span>{% endif %}
+          </td>
+          <td class="actions">
+            {% if d.status != 'closed' %}
+            <form class="inline" method="post" action="/paper/deals/{{ d.deal_id }}/cancel">
+              <button type="submit" style="font-size:0.75rem;">Cancel</button>
+            </form>
+            <form class="inline" method="post" action="/paper/deals/{{ d.deal_id }}/panic">
+              <button type="submit" class="danger" style="font-size:0.75rem;">Panic</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p style="color:#888; font-size:0.78rem; margin-top:0.5rem;">
+      <strong>Columns:</strong> Status = deal state · Side/Lev = position direction & leverage · Opened/Closed = timestamps · Duration = time in position ·
+      Filled = orders filled/total · Qty = total position size · Entry = first fill · Avg = weighted average · Exit = close price · Target = TP level ·
+      Notional = position value · Margin % = capital used · Liq Price = liquidation level · Dist to Liq % = safety buffer · Unrealized % = current P&L ·
+      Realized = P&L before funding · Funding = accrued funding costs · Total P&L = net profit/loss · Close Reason = why trade closed · Flags = special settings
+    </p>
+    {% else %}
+    <p class="no-bots">No deals yet.</p>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  <script>
+    // Refresh the local page when a trade opens or closes.
+    (function () {
+      var lastKey = null;
+      function poll() {
+        fetch('/paper/status')
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            var key = data.total_trades + ':' + data.open_deal_count;
+            if (lastKey !== null && key !== lastKey) {
+              location.reload();
+              return;
+            }
+            lastKey = key;
+          })
+          .catch(function () { /* transient network error — try again next poll */ });
+      }
+      poll();
+      setInterval(poll, 2000);
+      async function refreshEquity() {
+        try {
+          var response = await fetch('/paper/equity');
+          if (!response.ok) throw new Error('Equity unavailable');
+          document.getElementById('equity-chart').innerHTML = await response.text();
+        } catch (_) { /* Keep the last successful chart. */ }
+        setTimeout(refreshEquity, 60000);
+      }
+      setTimeout(refreshEquity, 60000);
+    })();
+  </script>
+</body>
+</html>

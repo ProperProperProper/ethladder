@@ -1,0 +1,38 @@
+[project]
+name = "ethladder"
+version = "0.1.0"
+description = "EthLadder — an ETHUSDT perpetual futures DCA trading engine for Bybit, with continuous walk-forward optimization, paper trading, and live trading"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "pydantic>=2.9",
+    "pybit>=5.9",
+    "jinja2>=3.1",
+    "httpx>=0.27",
+    # Used by symbot_python/ml (outcome_predictor.py needs scikit-learn's
+    # metrics/preprocessing, xgboost is the actual classifier) — always
+    # imported once run_everything.py's ml_trainer_loop starts, but never
+    # declared here before; only present because it happened to already
+    # be installed in this venv.
+    "numpy>=2.0",
+    "scikit-learn>=1.5",
+    "xgboost>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["symbot_python*"]

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Replaces com.ethladder.web / com.ethladder.optimizer / com.ethladder.watcher
+(and the standalone continuous_data_exporter.py / continuous_sqlite_saver.py /
+run_forward_omlx_tester.py / continuous_trainer processes, which were never
+launchd-supervised at all) with ONE service running run_everything.py — the
+single process that now contains: web server, dashboard, paper trading bot,
+forward tester, continuous optimizer, ML trainer, data exporter, SQLite
+saver, and log watcher.
+
+To install/enable:
+
+    mkdir -p ~/Library/LaunchAgents
+    cp scripts/launchd/com.ethladder.unified.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.ethladder.unified.plist
+
+To stop and remove:
+
+    launchctl unload ~/Library/LaunchAgents/com.ethladder.unified.plist
+    rm ~/Library/LaunchAgents/com.ethladder.unified.plist
+
+Do NOT also load com.ethladder.web / .optimizer / .watcher alongside this —
+they'd fight run_everything.py for port 8731 and duplicate every
+background loop. Those three plists are kept in this directory only as
+a reference/rollback path, not for simultaneous use.
+
+Same StandardOutPath/StandardErrorPath-to-/tmp pattern as the plists it
+replaces (see their own comments for why: launchd's own file creation
+into ~/Documents/... was found to silently fail to spawn this project's
+venv Python interpreter, exit code 78, even though that interpreter's
+own open()/write() calls into the same folder work fine). run_everything.py
+writes its real log content itself via logging.FileHandler
+(logs/run_everything.log) — these two paths are only a fallback for
+anything printed before that's set up.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.ethladder.unified</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/local.local/Documents/ethladder/.venv/bin/python</string>
+        <string>run_everything.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/local.local/Documents/ethladder</string>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/com.ethladder.unified.stdio.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/tmp/com.ethladder.unified.stdio.log</string>
+
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+</dict>
+</plist>

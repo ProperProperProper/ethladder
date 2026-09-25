@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>EthLadder — Console</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: -apple-system, system-ui, sans-serif; max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+  h1 { font-size: 1.4rem; margin-bottom: 0.2rem; }
+  nav a { text-decoration: none; margin-right: 0.4rem; }
+  .subtitle { color: #888; margin-bottom: 1rem; }
+  .tabs { display: flex; gap: 0.5rem; margin-bottom: 0.6rem; }
+  .tabs button { padding: 0.4rem 1rem; font-size: 0.9rem; cursor: pointer; border: 1px solid #8886; border-radius: 6px; background: #8881; color: inherit; }
+  .tabs button.active { background: #4a90d9; color: white; border-color: #4a90d9; }
+  .controls { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.6rem; font-size: 0.85rem; color: #888; }
+  .controls label { display: flex; align-items: center; gap: 0.3rem; }
+  #log-box {
+    background: #0d1117; color: #c9d1d9; font-family: ui-monospace, Menlo, monospace;
+    font-size: 0.8rem; line-height: 1.4; padding: 1rem; border-radius: 8px;
+    height: 70vh; overflow-y: auto; white-space: pre-wrap; word-break: break-word;
+  }
+  .log-line { border-left: 3px solid transparent; padding-left: 0.4rem; }
+  .log-line.ERROR, .log-line.err { border-color: #f85149; color: #ffa198; }
+  .log-line.WARNING, .log-line.warn { border-color: #d29922; color: #e3b341; }
+  .log-line.INFO { border-color: transparent; }
+  .status { font-size: 0.78rem; color: #888; margin-top: 0.4rem; }
+  .alerts-panel { margin-top: 1.5rem; }
+  .alerts-panel h2 { font-size: 1rem; margin-bottom: 0.4rem; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  th, td { text-align: left; padding: 0.3rem 0.5rem; border-bottom: 1px solid #8883; }
+  th { color: #888; font-weight: 500; }
+  .badge { padding: 0.1rem 0.5rem; border-radius: 10px; font-size: 0.72rem; }
+  .badge.ERROR, .badge.CRITICAL { background: #c628281a; color: #c62828; }
+  .badge.WARNING { background: #cc8a001a; color: #cc8a00; }
+  .no-data { color: #888; font-style: italic; }
+</style>
+</head>
+<body>
+  <h1>EthLadder</h1>
+  <nav style="margin-bottom:1rem;"><a href="/paper">Paper Trading</a> &nbsp;|&nbsp; <a href="/paper/reverse">Reverse Paper</a> &nbsp;|&nbsp; <a href="/winners">Winners</a> &nbsp;|&nbsp; <a href="/console"><strong>Console</strong></a></nav>
+  <p class="subtitle">Live tail — "Optimizer Activity" reads its own dedicated logs/optimizer_activity.log, "Full Log" reads logs/run_everything.log (everything else in this one process). Read-only, refreshes every 2s, auto-scrolls unless you scroll up.</p>
+
+  <div class="tabs">
+    <button id="tab-optimizer" class="active" onclick="switchSource('optimizer')">Optimizer Activity</button>
+    <button id="tab-web" onclick="switchSource('web')">Full Log</button>
+  </div>
+  <div class="controls">
+    <label><input type="checkbox" id="autoscroll" checked> Auto-scroll</label>
+    <span id="log-path">—</span>
+  </div>
+
+  <div id="log-box">Loading…</div>
+  <div class="status" id="status">—</div>
+
+  <div class="alerts-panel">
+    <h2>Recent alerts <span style="font-weight:400; color:#888; font-size:0.8rem;">(from scripts/log_watcher.py — same ones that fired a macOS notification)</span></h2>
+    <div id="alerts-box"><p class="no-data">Loading…</p></div>
+  </div>
+
+  <script>
+    let currentSource = "optimizer";
+
+    function switchSource(source) {
+      currentSource = source;
+      document.getElementById("tab-optimizer").classList.toggle("active", source === "optimizer");
+      document.getElementById("tab-web").classList.toggle("active", source === "web");
+      document.getElementById("log-box").textContent = "Loading…";
+      poll();
+    }
+
+    function classifyLine(line) {
+      if (line.includes(" ERROR ") || line.toUpperCase().includes("ERROR") || line.includes("Traceback")) return "ERROR";
+      if (line.includes(" WARNING ") || line.toUpperCase().includes("WARNING")) return "WARNING";
+      return "INFO";
+    }
+
+    async function poll() {
+      try {
+        const res = await fetch(`/api/logs?source=${currentSource}&lines=400`);
+        const data = await res.json();
+        const box = document.getElementById("log-box");
+        const wasAtBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
+
+        box.innerHTML = "";
+        for (const line of (data.lines || [])) {
+          const div = document.createElement("div");
+          div.className = "log-line " + classifyLine(line);
+          div.textContent = line;
+          box.appendChild(div);
+        }
+        document.getElementById("log-path").textContent = data.path || "—";
+        document.getElementById("status").textContent =
+          (data.lines ? data.lines.length : 0) + " lines shown · last refreshed " + new Date().toLocaleTimeString();
+
+        if (document.getElementById("autoscroll").checked && wasAtBottom) {
+          box.scrollTop = box.scrollHeight;
+        }
+      } catch (e) {
+        document.getElementById("status").textContent = "unreachable — " + e;
+      }
+    }
+
+    function escapeHtml(s) {
+      const div = document.createElement("div");
+      div.textContent = s;
+      return div.innerHTML;
+    }
+
+    async function pollAlerts() {
+      try {
+        const res = await fetch("/api/alerts?limit=50");
+        const data = await res.json();
+        const box = document.getElementById("alerts-box");
+        if (data.error) {
+          box.innerHTML = `<p class="no-data">${escapeHtml(data.error)}</p>`;
+          return;
+        }
+        const alerts = data.alerts || [];
+        if (alerts.length === 0) {
+          box.innerHTML = '<p class="no-data">No alerts recorded yet.</p>';
+          return;
+        }
+        let html = "<table><thead><tr><th>When</th><th>Source</th><th>Severity</th><th>Message</th></tr></thead><tbody>";
+        for (const a of alerts) {
+          html += `<tr><td>${escapeHtml(a.created_at)}</td><td>${escapeHtml(a.source)}</td>`
+            + `<td><span class="badge ${escapeHtml(a.severity)}">${escapeHtml(a.severity)}</span></td>`
+            + `<td>${escapeHtml(a.message.split("\n")[0])}</td></tr>`;
+        }
+        html += "</tbody></table>";
+        box.innerHTML = html;
+      } catch (e) {
+        document.getElementById("alerts-box").innerHTML = '<p class="no-data">unreachable</p>';
+      }
+    }
+
+    poll();
+    pollAlerts();
+    setInterval(poll, 2000);
+    setInterval(pollAlerts, 5000);
+  </script>
+</body>
+</html>

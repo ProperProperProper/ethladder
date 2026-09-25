@@ -1,0 +1,66 @@
+{
+  "generated": "2026-09-22T21:20:42.419673",
+  "last_24h": {
+    "period_hours": 24,
+    "timestamp": "2026-09-22T21:20:42.419698",
+    "omlx": {
+      "samples": 2,
+      "avg_accuracy": 37.75,
+      "peak_accuracy": 75.5,
+      "avg_win_rate": 34.0,
+      "peak_win_rate": 68.0
+    },
+    "system": {
+      "avg_cpu": 33.83,
+      "peak_cpu": 33.83,
+      "avg_memory": 99.89180564880371,
+      "avg_temp": 55.1
+    },
+    "trading": {
+      "total_trades": 0,
+      "winning_trades": null,
+      "avg_pnl": null,
+      "total_pnl": null
+    }
+  },
+  "last_7d": {
+    "period_hours": 168,
+    "timestamp": "2026-09-22T21:20:42.419718",
+    "omlx": {
+      "samples": 2,
+      "avg_accuracy": 37.75,
+      "peak_accuracy": 75.5,
+      "avg_win_rate": 34.0,
+      "peak_win_rate": 68.0
+    },
+    "system": {
+      "avg_cpu": 33.83,
+      "peak_cpu": 33.83,
+      "avg_memory": 99.89180564880371,
+      "avg_temp": 55.1
+    },
+    "trading": {
+      "total_trades": 0,
+      "winning_trades": null,
+      "avg_pnl": null,
+      "total_pnl": null
+    }
+  },
+  "patterns": [],
+  "comparison": {
+    "backtest_win_rate": 0,
+    "paper_win_rate": 0,
+    "paper_total_trades": 0,
+    "comparison": {
+      "status": "matching",
+      "difference": 0
+    }
+  },
+  "hourly": [
+    {
+      "hour": "2026-09-22 11:00:00",
+      "avg_accuracy": 37.75,
+      "samples": 2
+    }
+  ]
+}

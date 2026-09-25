@@ -1,0 +1,63 @@
+{
+  "timestamp": "2026-09-22T17:52:10.909817",
+  "duration_minutes": 2,
+  "iterations": 0,
+  "total_tests": 24,
+  "overall_statistics": {
+    "best_win_rate": 0.6426426426426426,
+    "best_pnl": 56.11034232052799,
+    "avg_win_rate": 0.6426426426426426,
+    "avg_pnl": 56.11034232052799
+  },
+  "accuracy_metrics": {
+    "accuracy": 0.0,
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1_score": 0.0,
+    "win_rate": 0,
+    "loss_rate": 0,
+    "avg_win": 0.0,
+    "avg_loss": 0.0,
+    "win_loss_ratio": Infinity,
+    "tp": 0,
+    "fp": 0,
+    "tn": 0,
+    "fn": 0,
+    "dd_recovery_success_rate": 0,
+    "high_conf_accuracy": 0.0,
+    "med_conf_accuracy": 0.0,
+    "low_conf_accuracy": 0.0,
+    "patterns": {},
+    "timestamp": "2026-09-22T17:52:10.909809"
+  },
+  "omlx_learning": {
+    "trades_with_omlx": 9990,
+    "omlx_wins": 6420,
+    "omlx_losses": 3570,
+    "omlx_win_rate": 0.6426426426426426,
+    "avg_omlx_confidence": 65.7609480812641
+  },
+  "iteration_progression": [
+    {
+      "iteration": 1,
+      "elapsed_min": 5.523363749186198e-07,
+      "params_tested": 12,
+      "best_win_rate": 0.6426426426426426,
+      "best_pnl": 56.11034232052799,
+      "omlx_avg_confidence": 65.7609480812641
+    },
+    {
+      "iteration": 2,
+      "elapsed_min": 1.00001056989034,
+      "params_tested": 12,
+      "best_win_rate": 0.6426426426426426,
+      "best_pnl": 56.11034232052799,
+      "omlx_avg_confidence": 65.7609480812641
+    }
+  ],
+  "calibration_summary": {
+    "patterns_learned": 2,
+    "dimension_accuracy": {},
+    "recommended_weights": {}
+  }
+}

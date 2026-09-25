@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ETH Ladder Master Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #10b981;
+            --secondary: #3b82f6;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --dark-bg: #0f172a;
+            --darker-bg: #0a0e27;
+            --card-bg: #1e293b;
+            --border: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-tertiary: #94a3b8;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--dark-bg) 0%, #1a2941 100%);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .title-section h1 {
+            font-size: 32px;
+            margin-bottom: 4px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .title-section p {
+            color: var(--text-tertiary);
+            font-size: 13px;
+        }
+
+        /* Tabs */
+        .tabs-container {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+            padding-bottom: 0;
+        }
+
+        .tab-button {
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .tab-button:hover {
+            color: var(--text-primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-button.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Dashboard Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .dashboard-grid.wide {
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        }
+
+        .dashboard-grid.full {
+            grid-template-columns: 1fr;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.2s;
+        }
+
+        .card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 8px 16px rgba(16, 185, 129, 0.1);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .card-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .card-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-top: 8px;
+        }
+
+        .card-subtext {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            margin-top: 8px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-badge.positive {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--primary);
+        }
+
+        .status-badge.negative {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+
+        .status-badge.neutral {
+            background: rgba(59, 130, 246, 0.2);
+            color: var(--secondary);
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .stat-value {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 16px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-top: 16px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        th {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            text-align: left;
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-secondary);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .positive {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .negative {
+            color: var(--danger);
+            font-weight: 600;
+        }
+
+        .data-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .data-item {
+            padding: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .data-item:last-child {
+            border-bottom: none;
+        }
+
+        .metric-badge {
+            background: rgba(59, 130, 246, 0.15);
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--secondary);
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(16, 185, 129, 0.3);
+            border-radius: 3px;
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 12px; }
+            .dashboard-grid { grid-template-columns: 1fr; }
+            .tabs-container { flex-wrap: wrap; }
+            .card { padding: 16px; }
+            .card-value { font-size: 24px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="title-section">
+                <h1>🪜 ETH Ladder Master Dashboard</h1>
+                <p>Complete Trading System Overview</p>
+            </div>
+            <div id="updateTime" style="font-size: 12px; color: var(--text-tertiary);">
+                Last updated: --:--:--
+            </div>
+        </header>
+
+        <!-- Tabs -->
+        <div class="tabs-container">
+            <button class="tab-button active" onclick="switchTab('omlx')">🧠 OMLX Learning</button>
+            <button class="tab-button" onclick="switchTab('paper')">📄 Paper Trading</button>
+            <button class="tab-button" onclick="switchTab('live')">🔴 Live Trading</button>
+            <button class="tab-button" onclick="switchTab('backtest')">📊 Backtest Results</button>
+            <button class="tab-button" onclick="switchTab('positions')">📍 Position Tracking</button>
+            <button class="tab-button" onclick="switchTab('reverse')">↩️ Reverse Trading</button>
+            <button class="tab-button" onclick="switchTab('analytics')">📈 Analytics</button>
+            <button class="tab-button" onclick="switchTab('funds')">💰 Funds Utilization</button>
+            <button class="tab-button" onclick="switchTab('system')">🖥️ System</button>
+        </div>
+
+        <!-- Tab: OMLX Learning -->
+        <div id="omlx" class="tab-content active">
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">🎯 Accuracy</span>
+                        <span id="omlxStatus" class="status-badge positive">Active</span>
+                    </div>
+                    <div class="card-value" id="omlxAccuracy">--</div>
+                    <div class="card-subtext">Forward test accuracy</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">📈 Win Rate</span>
+                    </div>
+                    <div class="card-value" id="omlxWinRate">--</div>
+                    <div class="card-subtext">Winning trades ratio</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">💾 Trade Memory</span>
+                    </div>
+                    <div class="card-value" id="omlxTrades">--</div>
+                    <div class="card-subtext">Trades stored & learning</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">🧠 Training Cycles</span>
+                    </div>
+                    <div class="card-value" id="omlxCycles">--</div>
+                    <div class="card-subtext">ML model iterations</div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid full">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">📋 Patterns Learned</span>
+                    </div>
+                    <div id="omlxPatterns" class="data-list"></div>
+                </div>
+            </div>
+
+            <!-- Real-time calibration engine: the actual, continuously
+                 running decision→outcome→recalibrate loop (dip_calibration_engine.py),
+                 fed by BOTH live/paper trading and the walk-forward
+                 forward-tester. Previously invisible on this dashboard
+                 entirely — see CLAUDE.md's "Recent Significant Changes"
+                 for why. -->
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">🔄 Last Trained</span>
+                    </div>
+                    <div class="card-value" id="omlxLastTrainedAt" style="font-size: 1.1rem;">--</div>
+                    <div class="card-subtext" id="omlxLastTrainedSub">ML trainer last cycle</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">✅ Completed Decisions</span>
+                    </div>
+                    <div class="card-value" id="omlxCompletedDecisions">--</div>
+                    <div class="card-subtext" id="omlxDecisionsBySource">walk-forward / live-paper</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">📉 Overall Bounce Rate</span>
+                    </div>
+                    <div class="card-value" id="omlxBounceRate">--</div>
+                    <div class="card-subtext">Across all recorded outcomes</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">🕐 Last Calibrated</span>
+                    </div>
+                    <div class="card-value" id="omlxLastCalibrated" style="font-size: 1.1rem;">--</div>
+                    <div class="card-subtext" id="omlxCalibrationEvents">training events recorded</div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid full">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">📅 Training Events Timeline</span>
+                    </div>
+                    <div class="card-subtext" style="margin-bottom: 8px;">Each row is one real recalibration event — proof learning is actually happening on a schedule, not just that a background task is running.</div>
+                    <div id="omlxTrainingEvents" class="data-list"></div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid full">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">🧾 Recent Decisions</span>
+                    </div>
+                    <div class="card-subtext" style="margin-bottom: 8px;">Most recent decisions recorded by the calibration engine, tagged by source.</div>
+                    <div id="omlxRecentDecisions" class="data-list"></div>
+                </div>
+            </div>
+
+            <!-- Candidate patterns extracted from the SEPARATE, external
+                 training-inbox pipeline (a different project entirely —
+                 fine-tunes a local coding-assistant model from dropped-in
+                 reference code, has no other connection to OMLX). This
+                 section is the bridge: genuine, checkable strategy ideas
+                 Claude found in that pipeline's already-approved Q&A
+                 drafts, sitting here PENDING until a human promotes or
+                 rejects them. Nothing here ever changes live trading
+                 behavior automatically. -->
+            <div class="dashboard-grid full">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">📥 Candidate Patterns (from dropped-in reference code)</span>
+                    </div>
+                    <div class="card-subtext" id="inboxPipelineStatus" style="margin-bottom: 8px;">--</div>
+                    <div id="inboxCandidates" class="data-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Paper Trading -->
+        <div id="paper" class="tab-content">
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">💰 Total P&L</span>
+                    </div>
+                    <div class="card-value" id="paperPnL">--</div>
+                    <div class="card-subtext">Simulated profit/loss</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">✅ Win Rate</span>
+                    </div>
+                    <div class="card-value" id="paperWinRate">--</div>
+                    <div class="card-subtext">Winning trade %</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">🎯 Total Trades</span>
+                    </div>
+                    <div class="card-value" id="paperTrades">--</div>
+                    <div class="card-subtext">Executed trades</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">📊 Max Drawdown</span>
+                    </div>
+                    <div class="card-value" id="paperDrawdown">--</div>
+                    <div class="card-subtext">Largest decline</div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid full">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Recent Trades</span>
+                    </div>
+                    <div class="table-container">
+                        <table id="paperTradesTable">
+                            <thead>
+                                <tr>
+                                    <th>Closed At</th>
+                                    <th>Entry</th>
+                                    <th>Exit</th>
+                                    <th>PnL</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="paperTradesBody">
+                                <tr><td colspan="5" style="text-align: center; color: var(--text-tertiary);">No trades yet...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Backtest Results — real continuous-optimizer data
+             (/api/optimizer-status), not the old dead
+             backtest_summary.json export (that only ever came from a
+             manual single-backtest web form deleted in an earlier
+             cleanup — see CLAUDE.md's "Recent Significant Changes"). -->
+        <div id="live" class="tab-content">
+                        <div class="warning-banner">
+                🔴 <strong>LIVE TRADING</strong> 🔴 — Real Bybit mainnet, real USDT at risk.
+                Positions remain open on server restart. NEVER places reverse trades.
+            </div>
+            <div style="margin-bottom: 1rem; display: flex; gap: 0.8rem; flex-wrap: wrap;">
+                <button onclick="startLiveTrading()" style="background:#10b981;color:white;border:none;padding:0.6rem 1.2rem;border-radius:6px;cursor:pointer;font-weight:600;">▶ Start Trading</button>
+                <button onclick="stopLiveTrading()" style="background:#f59e0b;color:white;border:none;padding:0.6rem 1.2rem;border-radius:6px;cursor:pointer;font-weight:600;">⏸ Stop Trading</button>
+                <button onclick="closeAllPositions()" style="background:#ef4444;color:white;border:none;padding:0.6rem 1.2rem;border-radius:6px;cursor:pointer;font-weight:600;">❌ Close All Positions</button>
+                <span id="liveStatusBadge" style="padding:0.6rem 1.2rem;border-radius:6px;background:#8881;color:#fff;font-weight:600;align-self:center;">Status: Disabled</span>
+            </div>
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">💰 Total P&L</span>
+                    </div>
+                    <div class="card-value" id="paperPnL">--</div>
+                    <div class="card-subtext">REAL MONEY - profit/loss</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">✅ Win Rate</span>
+                    </div>
+                    <div class="card-value" id="paperWinRate">--</div>
+                    <div class="card-subtext">Winning trade %</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">🎯 Total Trades</span>
+                    </div>
+                    <div class="card-value" id="paperTrades">--</div>
+                    <div class="card-subtext">Executed trades</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">📊 Max Drawdown</span>
+                    </div>
+                    <div class="card-value" id="paperDrawdown">--</div>
+                    <div class="card-subtext">Largest decline</div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid full">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Recent Trades</span>
+                    </div>
+                    <div class="table-container">
+                        <table id="paperTradesTable">
+                            <thead>
+                                <tr>
+                                    <th>Closed At</th>
+                                    <th>Entry</th>
+                                    <th>Exit</th>
+                                    <th>PnL</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="paperTradesBody">
+                                <tr><td colspan="5" style="text-align: center; color: var(--text-tertiary);">No trades yet...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Backtest Results — real continuous-optimizer data
+             (/api/optimizer-status), not the old dead
+             backtest_summary.json export (that only ever came from a
+             manual single-backtest web form deleted in an earlier
+             cleanup — see CLAUDE.md's "Recent Significant Changes"). -->
+
+        <div id="backtest" class="tab-content">
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">🔄 Optimizer State</span>
+                    </div>
+                    <div class="card-value" id="optState" style="font-size: 1.4rem;">--</div>
+                    <div class="card-subtext" id="optStateSub">--</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">📈 Current Cycle Progress</span>
+                    </div>
+                    <div class="card-value" id="optProgress">--</div>
+                    <div class="card-subtext" id="optProgressSub">combos tested this window</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">🏆 Last Cycle's Winner</span>
+                    </div>
+                    <div class="card-value" id="optLastWinner">--</div>
+                    <div class="card-subtext" id="optLastWinnerSub">--</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">⏳ Next Cycle In</span>
+                    </div>
+                    <div class="card-value" id="optNextCycle">--</div>
+                    <div class="card-subtext">Every 4 hours, or on bot restart</div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid full">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">🏅 Current Winners by Interval</span>
+                    </div>
+                    <div class="card-subtext" style="margin-bottom: 8px;">Promoted params currently in the param library — real, walk-forward-validated results (see <a href="/winners" style="color: var(--secondary);">/winners</a> for full history).</div>
+                    <div id="optWinnersTable"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Position Tracking -->
+        <div id="positions" class="tab-content">
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">📍 Open Positions</span>
+                    </div>
+                    <div class="card-value" id="openPositions">--</div>
+                    <div class="card-subtext">Currently active trades</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">💰 Position Size</span>
+                    </div>
+                    <div class="card-value" id="positionSize">--</div>
+                    <div class="card-subtext">Total USD exposure</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">📊 Unrealized P&L</span>
+                    </div>
+                    <div class="card-value" id="unrealizedPnL">--</div>
+                    <div class="card-subtext">Open trade profit/loss</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">🎯 Avg Entry Price</span>
+                    </div>
+                    <div class="card-value" id="avgEntry">--</div>
+                    <div class="card-subtext">Average entry cost</div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid full">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Active Trades</span>
+                    </div>
+                    <div class="table-container">
+                        <table id="positionsTable">
+                            <thead>
+                                <tr>
+                                    <th>Entry</th>
+                                    <th>Current</th>
+                                    <th>Size</th>
+                                    <th>P&L</th>
+                                    <th>%</th>
+                                    <th>Mode</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="positionsBody">
+                                <tr><td colspan="6" style="text-align: center; color: var(--text-tertiary);">No open positions</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Reverse Trading -->
+        <div id="reverse" class="tab-content">
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">↩️ Reverse Trades</span>
+                    </div>
+                    <div class="card-value" id="reverseTrades">--</div>
+                    <div class="card-subtext">Counter-trend entries</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">✅ Reverse Win Rate</span>
+                    </div>
+                    <div class="card-value" id="reverseWinRate">--</div>
+                    <div class="card-subtext">Success on reversals</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">💰 Reverse P&L</span>
+                    </div>
+                    <div class="card-value" id="reversePnL">--</div>
+                    <div class="card-subtext">Profit from reversals</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">🎯 Conversion Rate</span>
+                    </div>
+                    <div class="card-value" id="reverseConversion">--</div>
+                    <div class="card-subtext">Trend reverse success</div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid full">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Reverse Trade Analysis</span>
+                    </div>
+                    <div class="data-list" id="reverseAnalysis"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Analytics -->
+        <div id="analytics" class="tab-content">
+            <div class="dashboard-grid wide">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">📊 Learning Efficiency</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="efficiencyChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">📈 Performance Comparison</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="comparisonChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">🏆 Best Strategy</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Strategy</span>
+                        <span class="stat-value" id="bestStrategy">OMLX</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Return</span>
+                        <span class="stat-value positive" id="bestReturn">--</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">⚡ System Health</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">CPU</span>
+                        <span class="stat-value" id="healthCPU">--</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Memory</span>
+                        <span class="stat-value" id="healthMemory">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Funds Utilization Analysis -->
+        <div id="funds" class="tab-content">
+            <div class="dashboard-grid">
+                <div class="card" style="grid-column: 1/-1;">
+                    <div class="card-header">
+                        <span class="card-title">💰 Funds Utilization Analysis (78-100%)</span>
+                    </div>
+                    <button onclick="runFundsAnalysis()" style="padding:0.6rem 1.2rem;background:#3b82f6;color:white;border:none;border-radius:6px;cursor:pointer;margin-bottom:1rem;font-weight:600;">🔄 Run Analysis</button>
+                    <div id="fundsAnalysisStatus" style="color:var(--text-tertiary);font-size:0.9rem;margin-bottom:1rem;">Click "Run Analysis" to test all utilization percentages (takes 1-2 min)</div>
+                    <div id="fundsAnalysisResults" style="overflow-x:auto;">
+                        <table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+                            <thead>
+                                <tr style="border-bottom:1px solid var(--border);">
+                                    <th style="text-align:left;padding:0.5rem;">Utilization</th>
+                                    <th style="text-align:right;padding:0.5rem;">Profit Factor</th>
+                                    <th style="text-align:right;padding:0.5rem;">Win Rate</th>
+                                    <th style="text-align:right;padding:0.5rem;">Max DD</th>
+                                    <th style="text-align:right;padding:0.5rem;">Trades</th>
+                                    <th style="text-align:right;padding:0.5rem;">Total P&L</th>
+                                </tr>
+                            </thead>
+                            <tbody id="fundsAnalysisBody">
+                                <tr><td colspan="6" style="text-align:center;color:var(--text-tertiary);padding:1rem;">No analysis yet</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: System Status -->
+        <div id="system" class="tab-content">
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">💻 CPU Usage</span>
+                    </div>
+                    <div class="card-value" id="sysCPU">--</div>
+                    <div class="card-subtext">System CPU %</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">🧠 Memory</span>
+                    </div>
+                    <div class="card-value" id="sysMemory">--</div>
+                    <div class="card-subtext">RAM usage</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">💿 Disk</span>
+                    </div>
+                    <div class="card-value" id="sysDisk">--</div>
+                    <div class="card-subtext">Disk usage %</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">🌡️ Temperature</span>
+                    </div>
+                    <div class="card-value" id="sysTemp">--</div>
+                    <div class="card-subtext">System temp</div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid full">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">🔧 Running Components</span>
+                    </div>
+                    <div class="data-list" id="components"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">🔐 API Credentials</span>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:1rem;">
+                        <div style="padding:0.75rem;background:var(--bg-secondary);border-radius:6px;border-left:3px solid #f59e0b;">
+                            <div style="font-size:0.9rem;color:var(--text-secondary);">Credentials stored in macOS Keychain. Never exposed in logs or memory.</div>
+                            <div style="margin-top:0.5rem;">Status: <span id="credsStatus" style="font-weight:600;">🔄 Checking...</span></div>
+                        </div>
+
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                            <input type="password" id="apiKey" placeholder="API Key" style="padding:0.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg-secondary);color:var(--text);font-family:monospace;font-size:0.85rem;">
+                            <input type="password" id="apiSecret" placeholder="API Secret" style="padding:0.5rem;border:1px solid var(--border);border-radius:4px;background:var(--bg-secondary);color:var(--text);font-family:monospace;font-size:0.85rem;">
+                        </div>
+
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                            <button onclick="saveCredentials()" style="padding:0.6rem;background:#10b981;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:600;">💾 Save to Keychain</button>
+                            <button onclick="clearCredentials()" style="padding:0.6rem;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:600;">🗑️ Clear</button>
+                        </div>
+
+                        <div id="credsMessage" style="font-size:0.9rem;color:var(--text-tertiary);"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let efficiencyChart, comparisonChart;
+        let lastData = {};
+        let updateInProgress = false;
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function updateElement(id, value) {
+            const el = document.getElementById(id);
+            if (el && el.textContent !== value) {
+                el.textContent = value;
+                return true;
+            }
+            return false;
+        }
+
+        function initCharts() {
+            const opts = {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { labels: { color: 'var(--text-secondary)', font: { size: 11 } } }
+                },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'var(--text-tertiary)', font: { size: 10 } } },
+                    x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'var(--text-tertiary)', font: { size: 10 } } }
+                }
+            };
+
+            // Both charts start EMPTY — populated with real data in
+            // updateDashboard() below. Previously both were permanently
+            // hardcoded fake data (labels 'Week 1'..'Week 4', data
+            // [30,45,62,78]; labels ['OMLX','Paper','Backtest'], data
+            // [75,68,72]) that never once got updated with anything
+            // real, on this tab or anywhere else.
+            efficiencyChart = new Chart(document.getElementById('efficiencyChart'), {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Bounce Rate % (calibration engine, real decisions)',
+                        data: [],
+                        borderColor: 'var(--primary)',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: opts
+            });
+
+            comparisonChart = new Chart(document.getElementById('comparisonChart'), {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Out-of-Sample Win Rate % by Interval',
+                        data: [],
+                        backgroundColor: 'var(--primary)'
+                    }]
+                },
+                options: opts
+            });
+        }
+
+        async function closePosition(dealId, btn) {
+            // No confirm() dialog — a native browser confirm can be
+            // dismissed as Cancel without the click really registering,
+            // and this bot reported exactly that: click, nothing
+            // happens, zero trace of any request even reaching the
+            // server. Paper trading only (no real funds), so skipping
+            // the extra confirmation step is a reasonable trade for
+            // "the button visibly does something every time".
+            if (btn) { btn.disabled = true; btn.textContent = 'Closing…'; }
+            try {
+                const resp = await fetch(`/paper/deals/${dealId}/panic`, { method: 'POST' });
+                if (!resp.ok) {
+                    throw new Error(`Server returned ${resp.status}`);
+                }
+                lastData.positions = null;  // force a re-render on the next poll
+                await updateDashboard();
+            } catch (e) {
+                console.error('Failed to close position:', e);
+                alert('Failed to close position: ' + e.message);
+                if (btn) { btn.disabled = false; btn.textContent = 'Close'; }
+            }
+        }
+
+        async function reviewCandidate(id, action) {
+            try {
+                await fetch(`/api/inbox-candidates/${id}/${action}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ note: null }),
+                });
+                lastData.inboxCandidates = null;  // force a re-render on the next poll
+                updateDashboard();
+            } catch (e) {
+                console.error('Failed to review candidate:', e);
+            }
+        }
+
+        async function fetchJSON(file) {
+            try {
+                const resp = await fetch(file);
+                return resp.ok ? await resp.json() : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        async function updateDashboard() {
+            if (updateInProgress) return;
+            updateInProgress = true;
+
+            try {
+                // Fetch all data in parallel (more efficient than sequential)
+                const [metrics, paperData, optData, posData, revData, system] = await Promise.all([
+                    fetchJSON('omlx_metrics_live.json'),
+                    fetchJSON('paper_trading_summary.json'),
+                    fetchJSON('/api/optimizer-status'),
+                    fetchJSON('positions.json'),
+                    fetchJSON('reverse_trading_summary.json'),
+                    fetchJSON('system_metrics.json')
+                ]);
+
+                // Update only if values changed (reduce DOM thrashing)
+                if (metrics) {
+                    updateElement('omlxAccuracy', `${(metrics.metrics?.accuracy || 0).toFixed(1)}%`);
+                    updateElement('omlxWinRate', `${(metrics.metrics?.win_rate || 0).toFixed(1)}%`);
+                    updateElement('omlxTrades', (metrics.metrics?.total_trades || 0).toString());
+                    updateElement('omlxCycles', (metrics.progress?.training_cycles || 0).toString());
+
+                    let patternHtml = '';
+                    Object.entries(metrics.patterns || {}).slice(0, 5).forEach(([name, data]) => {
+                        patternHtml += `<div class="data-item"><span>${name}</span><span class="metric-badge">${((data.success_rate || 0) * 100).toFixed(0)}%</span></div>`;
+                    });
+                    if (lastData.patterns !== JSON.stringify(metrics.patterns)) {
+                        document.getElementById('omlxPatterns').innerHTML = patternHtml || '<div style="padding: 20px; text-align: center; color: var(--text-tertiary);">Learning patterns...</div>';
+                        lastData.patterns = JSON.stringify(metrics.patterns);
+                    }
+
+                    // Real ML-trainer + calibration-engine status — see
+                    // run_everything.py's _get_ml_trainer_status()/
+                    // _get_calibration_status(). Fixes the previously-dead
+                    // Training Cycles tile (metrics.progress.training_cycles
+                    // was never actually set before) and is the first time
+                    // the calibration engine's real decision→outcome loop
+                    // (fed by BOTH live/paper trading and the walk-forward
+                    // tester) is shown at all.
+                    const trainer = metrics.ml_trainer || {};
+                    updateElement('omlxCycles', (metrics.progress?.training_cycles || 0).toString());
+                    if (trainer.last_training) {
+                        const d = new Date(trainer.last_training);
+                        updateElement('omlxLastTrainedAt', d.toLocaleTimeString());
+                        updateElement('omlxLastTrainedSub', `${trainer.training_cycles || 0} cycles · ${trainer.total_trades_in_memory || 0} trades in memory`);
+                    } else {
+                        updateElement('omlxLastTrainedAt', 'Not yet');
+                        updateElement('omlxLastTrainedSub', 'Waiting for first new-data check');
+                    }
+
+                    const cal = metrics.calibration || {};
+                    updateElement('omlxCompletedDecisions', (cal.completed_decisions || 0).toString());
+                    const bySource = cal.completed_by_source || {};
+                    updateElement('omlxDecisionsBySource',
+                        `walk-forward: ${bySource.walk_forward || 0} · live-paper: ${bySource.live_paper || 0}`);
+                    updateElement('omlxBounceRate',
+                        cal.overall_bounce_rate != null ? `${(cal.overall_bounce_rate * 100).toFixed(1)}%` : '--');
+                    if (cal.last_calibrated_at) {
+                        updateElement('omlxLastCalibrated', new Date(cal.last_calibrated_at).toLocaleTimeString());
+                    } else {
+                        updateElement('omlxLastCalibrated', 'Never');
+                    }
+                    updateElement('omlxCalibrationEvents', `${cal.training_event_count || 0} training events recorded`);
+
+                    if (lastData.trainingEvents !== JSON.stringify(cal.recent_events)) {
+                        let eventsHtml = '';
+                        (cal.recent_events || []).slice().reverse().forEach(ev => {
+                            const t = new Date(ev.timestamp).toLocaleString();
+                            const bySrc = Object.entries(ev.trades_by_source || {}).map(([s, n]) => `${s}:${n}`).join(' ');
+                            eventsHtml += `<div class="data-item"><span>${t} — ${ev.completed_trades} trades (${bySrc})</span><span class="metric-badge">bounce ${((ev.overall_bounce_rate || 0) * 100).toFixed(0)}%</span></div>`;
+                        });
+                        document.getElementById('omlxTrainingEvents').innerHTML = eventsHtml || '<div style="padding: 20px; text-align: center; color: var(--text-tertiary);">No calibration events yet — recorded the first time a dip outcome resolves.</div>';
+                        lastData.trainingEvents = JSON.stringify(cal.recent_events);
+
+                        // Analytics tab's "Learning Efficiency" chart —
+                        // real bounce-rate-over-time from the same
+                        // calibration events, not the permanently
+                        // hardcoded [30,45,62,78] this used to show.
+                        if (efficiencyChart) {
+                            const events = cal.recent_events || [];
+                            efficiencyChart.data.labels = events.map(ev => new Date(ev.timestamp).toLocaleTimeString());
+                            efficiencyChart.data.datasets[0].data = events.map(ev => (ev.overall_bounce_rate || 0) * 100);
+                            efficiencyChart.update();
+                        }
+                    }
+
+                    if (lastData.recentDecisions !== JSON.stringify(cal.recent_decisions)) {
+                        let decisionsHtml = '';
+                        (cal.recent_decisions || []).slice().reverse().forEach(d => {
+                            const t = new Date(d.timestamp * 1000).toLocaleTimeString();
+                            const outcome = d.outcome_bounced === null || d.outcome_bounced === undefined
+                                ? 'pending' : (d.outcome_bounced ? 'WIN' : 'LOSS');
+                            const badgeStyle = outcome === 'WIN' ? 'color: var(--primary);' : (outcome === 'LOSS' ? 'color: var(--danger);' : '');
+                            decisionsHtml += `<div class="data-item"><span>${t} [${d.source}] ${d.decision_action} @ ${d.decision_confidence.toFixed(0)}%</span><span class="metric-badge" style="${badgeStyle}">${outcome}</span></div>`;
+                        });
+                        document.getElementById('omlxRecentDecisions').innerHTML = decisionsHtml || '<div style="padding: 20px; text-align: center; color: var(--text-tertiary);">No decisions recorded yet.</div>';
+                        lastData.recentDecisions = JSON.stringify(cal.recent_decisions);
+                    }
+
+                    const inbox = metrics.inbox_candidates || {};
+                    if (!inbox.pipeline_found) {
+                        updateElement('inboxPipelineStatus', 'Inbox pipeline not found on this machine — nothing to review.');
+                    } else {
+                        updateElement('inboxPipelineStatus',
+                            `${inbox.qa_approved_total || 0} approved Q&A reviewed, ${inbox.qa_processed_by_extractor || 0} checked for strategy ideas so far · pending: ${(inbox.candidates_by_status || {}).pending || 0}, promoted: ${(inbox.candidates_by_status || {}).promoted || 0}, rejected: ${(inbox.candidates_by_status || {}).rejected || 0}`);
+                    }
+                    if (lastData.inboxCandidates !== JSON.stringify(inbox.recent_candidates)) {
+                        let candidatesHtml = '';
+                        (inbox.recent_candidates || []).forEach(c => {
+                            const statusColor = c.status === 'promoted' ? 'var(--primary)' : (c.status === 'rejected' ? 'var(--danger)' : 'var(--secondary)');
+                            const actions = c.status === 'pending'
+                                ? `<button onclick="reviewCandidate('${c.id}', 'promote')" style="margin-right:6px; padding:4px 10px; border-radius:6px; border:none; background:var(--primary); color:#fff; cursor:pointer; font-size:11px;">Promote</button><button onclick="reviewCandidate('${c.id}', 'reject')" style="padding:4px 10px; border-radius:6px; border:none; background:var(--danger); color:#fff; cursor:pointer; font-size:11px;">Reject</button>`
+                                : `<span style="color:${statusColor}; font-size:11px; font-weight:600; text-transform:uppercase;">${c.status}</span>`;
+                            candidatesHtml += `<div class="data-item" style="flex-direction:column; align-items:flex-start; gap:6px;">
+                                <div style="width:100%; display:flex; justify-content:space-between;"><strong>${c.title}</strong><span class="metric-badge">${c.confidence} confidence</span></div>
+                                <div style="color: var(--text-tertiary); font-size: 12px;">${c.description}</div>
+                                <div style="color: var(--secondary); font-size: 12px; font-family: monospace;">${c.suggested_rule}</div>
+                                <div style="color: var(--text-tertiary); font-size: 11px;">source: ${c.source_file}</div>
+                                <div>${actions}</div>
+                            </div>`;
+                        });
+                        document.getElementById('inboxCandidates').innerHTML = candidatesHtml || '<div style="padding: 20px; text-align: center; color: var(--text-tertiary);">No candidate patterns found yet — most approved Q&A entries are plain API documentation with no strategy content, so this can legitimately stay empty for a long time.</div>';
+                        lastData.inboxCandidates = JSON.stringify(inbox.recent_candidates);
+                    }
+                }
+
+                if (paperData) {
+                    const pnl = paperData.total_pnl || 0;
+                    updateElement('paperPnL', `${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}%`);
+                    updateElement('paperWinRate', `${(paperData.win_rate || 0).toFixed(1)}%`);
+                    updateElement('paperTrades', (paperData.total_trades || 0).toString());
+                    updateElement('paperDrawdown', `${(paperData.max_drawdown || 0).toFixed(2)}%`);
+
+                    if (lastData.trades !== JSON.stringify(paperData.recent_trades)) {
+                        let tradesHtml = '';
+                        (paperData.recent_trades || []).slice(0, 5).forEach(trade => {
+                            const pnl = trade.pnl || 0;
+                            const closedAt = trade.closed_at ? new Date(trade.closed_at * 1000).toLocaleString() : '--';
+                            tradesHtml += `<tr><td style="white-space: nowrap;">${closedAt}</td><td>${trade.entry || '--'}</td><td>${trade.exit || '--'}</td><td class="${pnl >= 0 ? 'positive' : 'negative'}">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}</td><td><span class="status-badge ${pnl >= 0 ? 'positive' : 'negative'}">${pnl >= 0 ? 'Win' : 'Loss'}</span></td></tr>`;
+                        });
+                        document.getElementById('paperTradesBody').innerHTML = tradesHtml || '<tr><td colspan="5" style="text-align: center; color: var(--text-tertiary);">No trades yet...</td></tr>';
+                        lastData.trades = JSON.stringify(paperData.recent_trades);
+                    }
+                }
+
+                if (optData) {
+                    updateElement('optState', optData.state || 'unknown');
+                    updateElement('optStateSub', `cycle ${optData.cycle ?? '--'} · interval ${optData.interval ?? '--'} · real balance $${(optData.real_available_balance ?? 0).toFixed(2)}`);
+
+                    if (optData.combos_total) {
+                        const pct = ((optData.combos_done || 0) / optData.combos_total * 100).toFixed(0);
+                        updateElement('optProgress', `${pct}%`);
+                        updateElement('optProgressSub', `${(optData.combos_done || 0).toLocaleString()} / ${optData.combos_total.toLocaleString()} combos · window ${optData.window_index ?? '--'}/${optData.windows_total ?? '--'}`);
+                    } else {
+                        updateElement('optProgress', '--');
+                        updateElement('optProgressSub', 'No cycle in progress');
+                    }
+
+                    const lastWinner = optData.last_cycle_winning_summary;
+                    if (lastWinner) {
+                        updateElement('optLastWinner', `${(lastWinner.win_rate * 100 || 0).toFixed(0)}% WR`);
+                        updateElement('optLastWinnerSub', `interval ${optData.last_cycle_winning_interval ?? '--'} · ${lastWinner.trades ?? 0} trades · ${(lastWinner.return_percent ?? 0).toFixed(1)}% return`);
+                    } else {
+                        updateElement('optLastWinner', '--');
+                        updateElement('optLastWinnerSub', 'No completed cycle yet');
+                    }
+
+                    if (optData.next_cycle_in_seconds != null) {
+                        const mins = Math.max(0, Math.round(optData.next_cycle_in_seconds / 60));
+                        updateElement('optNextCycle', mins >= 60 ? `${(mins / 60).toFixed(1)}h` : `${mins}m`);
+                    } else {
+                        updateElement('optNextCycle', '--');
+                    }
+
+                    const winners = optData.current_winners || [];
+                    if (lastData.optWinners !== JSON.stringify(winners)) {
+                        if (winners.length === 0) {
+                            document.getElementById('optWinnersTable').innerHTML =
+                                '<div style="padding: 20px; text-align: center; color: var(--text-tertiary);">No current winners yet — the optimizer promotes one per interval once it finds a walk-forward-validated config with zero liquidations.</div>';
+                        } else {
+                            let html = '<table style="width:100%; border-collapse: collapse;"><thead><tr>' +
+                                '<th style="text-align:left; padding:6px;">Interval</th><th style="text-align:left; padding:6px;">Return %</th>' +
+                                '<th style="text-align:left; padding:6px;">Win Rate</th><th style="text-align:left; padding:6px;">Trades</th>' +
+                                '<th style="text-align:left; padding:6px;">Max DD %</th><th style="text-align:left; padding:6px;">Sharpe</th>' +
+                                '<th style="text-align:left; padding:6px;">Liquidations</th><th style="text-align:left; padding:6px;">Tested At</th>' +
+                                '</tr></thead><tbody>';
+                            winners.forEach(w => {
+                                const dangerLiq = (w.liquidation_count || 0) > 0 ? 'color: var(--danger); font-weight:600;' : '';
+                                html += `<tr>
+                                    <td style="padding:6px;">${w.interval}</td>
+                                    <td style="padding:6px;" class="${(w.out_of_sample_return_percent||0) >= 0 ? 'positive' : 'negative'}">${(w.out_of_sample_return_percent || 0).toFixed(2)}%</td>
+                                    <td style="padding:6px;">${((w.out_of_sample_win_rate || 0) * 100).toFixed(0)}%</td>
+                                    <td style="padding:6px;">${w.out_of_sample_trade_count ?? '--'}</td>
+                                    <td style="padding:6px;">${(w.max_drawdown_percent || 0).toFixed(2)}%</td>
+                                    <td style="padding:6px;">${w.sharpe_ratio != null ? w.sharpe_ratio.toFixed(2) : '--'}</td>
+                                    <td style="padding:6px; ${dangerLiq}">${w.liquidation_count ?? 0}</td>
+                                    <td style="padding:6px; color: var(--text-tertiary); font-size: 12px;">${w.tested_at ? new Date(w.tested_at).toLocaleString() : '--'}</td>
+                                </tr>`;
+                            });
+                            html += '</tbody></table>';
+                            document.getElementById('optWinnersTable').innerHTML = html;
+                        }
+                        lastData.optWinners = JSON.stringify(winners);
+
+                        // Analytics tab: "Performance Comparison" chart
+                        // (real per-interval out-of-sample win rate,
+                        // replacing the permanently hardcoded
+                        // ['OMLX','Paper','Backtest']/[75,68,72] this
+                        // used to show) and "Best Strategy" card (real
+                        // best current winner, replacing a static "--").
+                        if (comparisonChart) {
+                            comparisonChart.data.labels = winners.map(w => `${w.interval}m`);
+                            comparisonChart.data.datasets[0].data = winners.map(w => (w.out_of_sample_win_rate || 0) * 100);
+                            comparisonChart.update();
+                        }
+                        const bestWinner = winners.reduce((best, w) =>
+                            (!best || (w.out_of_sample_return_percent || -Infinity) > (best.out_of_sample_return_percent || -Infinity)) ? w : best,
+                            null);
+                        if (bestWinner) {
+                            updateElement('bestStrategy', `OMLX (${bestWinner.interval}m)`);
+                            updateElement('bestReturn', `${(bestWinner.out_of_sample_return_percent || 0) >= 0 ? '+' : ''}${(bestWinner.out_of_sample_return_percent || 0).toFixed(1)}%`);
+                        }
+                    }
+                }
+
+                if (posData) {
+                    const positions = posData.positions || [];
+                    updateElement('openPositions', positions.filter(p => p.status === 'open').length.toString());
+                    updateElement('positionSize', `$${positions.reduce((sum, p) => sum + (p.size || 0), 0).toFixed(3)}`);
+                    const totalUnrealized = positions.reduce((sum, p) => sum + (p.unrealized_pnl || 0), 0);
+                    updateElement('unrealizedPnL', `${totalUnrealized >= 0 ? '+' : ''}$${totalUnrealized.toFixed(2)}`);
+                    const avgEntry = positions.length > 0 ? positions.reduce((sum, p) => sum + (p.entry_price || 0), 0) / positions.length : 0;
+                    updateElement('avgEntry', `$${avgEntry.toFixed(2)}`);
+
+                    if (lastData.positions !== JSON.stringify(positions)) {
+                        let posHtml = '';
+                        positions.slice(0, 10).forEach(pos => {
+                            const pnl = pos.unrealized_pnl || 0;
+                            const pctMove = pos.entry_price ? (pos.current_price - pos.entry_price) / pos.entry_price * 100 : 0;
+                            const modeLabel = pos.trading_mode === 'live' ? '🔴 Live' : '📄 Paper';
+                            const closeBtn = pos.deal_id
+                                ? `<button onclick="closePosition('${pos.deal_id}', this)" style="padding:4px 10px; border-radius:6px; border:none; background:var(--danger); color:#fff; cursor:pointer; font-size:11px;">Close</button>`
+                                : '--';
+                            posHtml += `<tr><td>$${(pos.entry_price || 0).toFixed(2)}</td><td>$${(pos.current_price || 0).toFixed(2)}</td><td>${pos.size || 0}</td><td class="${pnl >= 0 ? 'positive' : 'negative'}">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}</td><td class="${pctMove >= 0 ? 'positive' : 'negative'}">${pctMove.toFixed(2)}%</td><td>${modeLabel}</td><td>${closeBtn}</td></tr>`;
+                        });
+                        document.getElementById('positionsBody').innerHTML = posHtml || '<tr><td colspan="7" style="text-align: center; color: var(--text-tertiary);">No open positions</td></tr>';
+                        lastData.positions = JSON.stringify(positions);
+                    }
+                }
+
+                if (revData) {
+                    updateElement('reverseTrades', (revData.total_trades || 0).toString());
+                    updateElement('reverseWinRate', `${(revData.win_rate || 0).toFixed(1)}%`);
+                    updateElement('reversePnL', `${(revData.total_pnl || 0) >= 0 ? '+' : ''}${(revData.total_pnl || 0).toFixed(2)}%`);
+                    updateElement('reverseConversion', `${(revData.conversion_rate || 0).toFixed(1)}%`);
+                }
+
+                if (system?.current) {
+                    updateElement('sysCPU', `${(system.current.cpu?.percent || 0).toFixed(1)}%`);
+                    updateElement('sysMemory', `${(system.current.memory?.used_gb || 0).toFixed(1)}GB`);
+                    updateElement('sysDisk', `${(system.current.disk?.percent || 0).toFixed(1)}%`);
+                    updateElement('sysTemp', system.current.temperature?.celsius ? `${system.current.temperature.celsius.toFixed(1)}°C` : '--');
+                    updateElement('healthCPU', `${(system.current.cpu?.percent || 0).toFixed(1)}%`);
+                    updateElement('healthMemory', `${(system.current.memory?.percent || 0).toFixed(1)}%`);
+                }
+
+                updateElement('updateTime', `Last updated: ${new Date().toLocaleTimeString()}`);
+            } catch (e) {
+                console.log('Loading metrics...', e);
+            } finally {
+                updateInProgress = false;
+            }
+        }
+
+        // Live Trading Controls
+        async function startLiveTrading() {
+            try {
+                await fetch('/live/start', { method: 'POST' });
+                updateLiveStatus();
+            } catch (e) {
+                console.error('Start failed:', e);
+            }
+        }
+
+        async function stopLiveTrading() {
+            try {
+                await fetch('/live/stop', { method: 'POST' });
+                updateLiveStatus();
+            } catch (e) {
+                console.error('Stop failed:', e);
+            }
+        }
+
+        async function closeAllPositions() {
+            if (!confirm('🚨 WARNING 🚨\n\nThis will IMMEDIATELY close ALL open positions on Bybit.\n\nAre you absolutely sure?')) return;
+
+            try {
+                const resp = await fetch('/live/close-all-positions', { method: 'POST' });
+                const data = await resp.json();
+                alert(data.message || 'Positions closed');
+                updateLiveStatus();
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        async function updateLiveStatus() {
+            try {
+                const resp = await fetch('/live/status');
+                const data = await resp.json();
+                const badge = document.getElementById('liveStatusBadge');
+                if (badge) {
+                    if (data.trading_enabled) {
+                        badge.textContent = '🟢 Status: TRADING';
+                        badge.style.background = '#10b981';
+                    } else {
+                        badge.textContent = '⚫ Status: Disabled';
+                        badge.style.background = '#8881';
+                    }
+                    if (data.position) {
+                        badge.textContent += ` | Position: ${data.position.qty.toFixed(4)} @ $${data.position.avg_price.toFixed(2)}`;
+                    }
+                }
+            } catch (e) {
+                console.log('Could not update live status:', e);
+            }
+        }
+
+        async function checkCredentialsStatus() {
+            try {
+                const response = await fetch('/api/credentials-status');
+                const data = await response.json();
+                const statusEl = document.getElementById('credsStatus');
+                if (data.has_credentials) {
+                    statusEl.textContent = '🔒 Credentials set';
+                    statusEl.style.color = '#10b981';
+                } else {
+                    statusEl.textContent = '⚠️ No credentials';
+                    statusEl.style.color = '#f59e0b';
+                }
+            } catch (e) {
+                document.getElementById('credsStatus').textContent = '❌ Check failed';
+            }
+        }
+
+        async function saveCredentials() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const apiSecret = document.getElementById('apiSecret').value.trim();
+            const msgEl = document.getElementById('credsMessage');
+
+            if (!apiKey || !apiSecret) {
+                msgEl.textContent = '❌ API key and secret are required';
+                msgEl.style.color = '#ef4444';
+                return;
+            }
+
+            msgEl.textContent = '⏳ Saving...';
+            msgEl.style.color = '#f59e0b';
+
+            try {
+                const response = await fetch('/api/credentials-save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ api_key: apiKey, api_secret: apiSecret })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    msgEl.textContent = '✓ ' + data.message;
+                    msgEl.style.color = '#10b981';
+                    document.getElementById('apiKey').value = '';
+                    document.getElementById('apiSecret').value = '';
+                    checkCredentialsStatus();
+                } else {
+                    msgEl.textContent = '❌ ' + data.error;
+                    msgEl.style.color = '#ef4444';
+                }
+            } catch (e) {
+                msgEl.textContent = '❌ Request failed: ' + e.message;
+                msgEl.style.color = '#ef4444';
+            }
+        }
+
+        async function clearCredentials() {
+            const msgEl = document.getElementById('credsMessage');
+            if (!confirm('Clear API credentials from Keychain?')) return;
+
+            msgEl.textContent = '⏳ Clearing...';
+            msgEl.style.color = '#f59e0b';
+
+            try {
+                const response = await fetch('/api/credentials-clear', { method: 'POST' });
+                const data = await response.json();
+
+                if (data.success) {
+                    msgEl.textContent = '✓ ' + data.message;
+                    msgEl.style.color = '#10b981';
+                    checkCredentialsStatus();
+                } else {
+                    msgEl.textContent = '❌ ' + data.error;
+                    msgEl.style.color = '#ef4444';
+                }
+            } catch (e) {
+                msgEl.textContent = '❌ Request failed: ' + e.message;
+                msgEl.style.color = '#ef4444';
+            }
+        }
+
+        async function runFundsAnalysis() {
+            const statusDiv = document.getElementById('fundsAnalysisStatus');
+            const bodyDiv = document.getElementById('fundsAnalysisBody');
+
+            statusDiv.textContent = '⏳ Running analysis on 78-100%... (1-2 min)';
+            statusDiv.style.color = '#f59e0b';
+
+            try {
+                const response = await fetch('/api/analyze-funds-utilization', { method: 'POST' });
+                const data = await response.json();
+
+                if (data.error) {
+                    statusDiv.textContent = `❌ Error: ${data.error}`;
+                    statusDiv.style.color = '#ef4444';
+                    return;
+                }
+
+                const results = data.results || [];
+                if (results.length === 0) {
+                    statusDiv.textContent = '❌ No results generated';
+                    statusDiv.style.color = '#ef4444';
+                    return;
+                }
+
+                let html = '';
+                results.forEach(r => {
+                    const isOptimal = r.is_optimal ? '✓ OPTIMAL' : '';
+                    const bgColor = r.is_optimal ? 'background:#10b981;color:white;font-weight:600;' : '';
+                    const row = `<tr style="${bgColor}border-bottom:1px solid var(--border);">
+                        <td style="padding:0.5rem;">${r.utilization_percent}%</td>
+                        <td style="text-align:right;padding:0.5rem;">${r.profit_factor.toFixed(3)}</td>
+                        <td style="text-align:right;padding:0.5rem;">${r.win_rate.toFixed(1)}%</td>
+                        <td style="text-align:right;padding:0.5rem;">${r.max_drawdown.toFixed(2)}%</td>
+                        <td style="text-align:right;padding:0.5rem;">${r.total_trades}</td>
+                        <td style="text-align:right;padding:0.5rem;">${r.total_pnl_pct > 0 ? '+' : ''}${r.total_pnl_pct.toFixed(2)}% ${isOptimal}</td>
+                    </tr>`;
+                    html += row;
+                });
+
+                bodyDiv.innerHTML = html;
+                statusDiv.textContent = `✓ Analysis complete. Best: ${data.best_utilization}% (by profit factor)`;
+                statusDiv.style.color = '#10b981';
+            } catch (e) {
+                statusDiv.textContent = `❌ Request failed: ${e.message}`;
+                statusDiv.style.color = '#ef4444';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            updateDashboard();
+            updateLiveStatus();
+            checkCredentialsStatus();
+            // Increased from 5s to 15s to reduce CPU load
+            setInterval(updateDashboard, 15000);
+            setInterval(updateLiveStatus, 5000); // Check live status more frequently
+            setInterval(checkCredentialsStatus, 30000); // Check creds every 30s
+        });
+    </script>
+</body>
+</html>
