@@ -319,10 +319,16 @@ class DCABotManager:
         await self.request_deal_start(bot.bot_id)
 
         # Mirror the auto-chain to live trading if it's enabled
+        # Paper and live have different managers with different bot_ids, so find live's auto bot
         try:
             from symbot_python.api import live_trading
             if live_trading._trading_enabled and live_trading._manager is not None:
-                await live_trading._manager.request_deal_start(bot.bot_id)
+                # Find the auto bot in live manager (has same auto name pattern)
+                # Paper bot name is like "paper-auto-ETHUSDT", live is "live-auto-ETHUSDT"
+                for live_bot_id, live_bot in live_trading._manager.bots.items():
+                    if "auto" in live_bot.bot_name:
+                        await live_trading._manager.request_deal_start(live_bot_id)
+                        break
         except Exception:
             pass  # Live trading not available or error; paper chain completes regardless
 
