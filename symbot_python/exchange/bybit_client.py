@@ -175,8 +175,9 @@ class BybitClient:
             )
         except (BybitApiError, InvalidRequestError) as exc:
             # BybitApiError for direct SDK errors, InvalidRequestError for pybit library exceptions
-            error_code = str(getattr(exc, 'ret_code', None))
-            if error_code != LEVERAGE_NOT_MODIFIED_ERROR_CODE:
+            # Error code is in the message string for InvalidRequestError
+            error_str = str(exc)
+            if LEVERAGE_NOT_MODIFIED_ERROR_CODE not in error_str:
                 raise
         self._leverage_set[symbol] = leverage
 
