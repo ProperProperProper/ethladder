@@ -126,6 +126,7 @@ class BybitClient:
         self.category = category
         self._precision_cache: dict[str, InstrumentPrecision] = {}
         self._leverage_set: dict[str, float] = {}
+        self._position_cache: dict[str, Optional[PositionInfo]] = {}
 
     # -- connection / account -------------------------------------------------
 
@@ -182,9 +183,10 @@ class BybitClient:
         )
         items = result.get("list", [])
         if not items or float(items[0].get("size") or 0) == 0:
+            self._position_cache[symbol] = None
             return None
         p = items[0]
-        return PositionInfo(
+        pos = PositionInfo(
             symbol=symbol,
             side=p.get("side", "None"),
             size=float(p.get("size") or 0),
@@ -193,6 +195,12 @@ class BybitClient:
             liquidation_price=float(p.get("liqPrice") or 0) if p.get("liqPrice") else 0.0,
             unrealized_pnl=float(p.get("unrealisedPnl") or 0),
         )
+        self._position_cache[symbol] = pos
+        return pos
+
+    def position(self, symbol: str) -> Optional[PositionInfo]:
+        """Synchronous position lookup — returns cached position or None (flat)."""
+        return self._position_cache.get(symbol)
 
     # -- instrument precision --------------------------------------------------
 
