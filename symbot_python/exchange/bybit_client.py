@@ -40,6 +40,8 @@ import time
 from dataclasses import dataclass
 from typing import Any, Optional, Protocol
 
+from pybit.exceptions import InvalidRequestError
+
 from symbot_python.exchange.base import (
     InstrumentPrecision,
     OrderResult,
@@ -171,8 +173,10 @@ class BybitClient:
                     buyLeverage=lev, sellLeverage=lev,
                 ))
             )
-        except BybitApiError as exc:
-            if str(exc.ret_code) != LEVERAGE_NOT_MODIFIED_ERROR_CODE:
+        except (BybitApiError, InvalidRequestError) as exc:
+            # BybitApiError for direct SDK errors, InvalidRequestError for pybit library exceptions
+            error_code = str(getattr(exc, 'ret_code', None))
+            if error_code != LEVERAGE_NOT_MODIFIED_ERROR_CODE:
                 raise
         self._leverage_set[symbol] = leverage
 

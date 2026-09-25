@@ -318,6 +318,14 @@ class DCABotManager:
             await asyncio.sleep(bot.deal_cool_down)
         await self.request_deal_start(bot.bot_id)
 
+        # Mirror the auto-chain to live trading if it's enabled
+        try:
+            from symbot_python.api import live_trading
+            if live_trading._trading_enabled and live_trading._manager is not None:
+                await live_trading._manager.request_deal_start(bot.bot_id)
+        except Exception:
+            pass  # Live trading not available or error; paper chain completes regardless
+
     async def _start_deal_from_flip(self, bot: BotConfig, pending_flip: dict, position_config: Optional[BotConfig] = None) -> None:
         """Registers the position a reversal already opened with a fresh
         monitoring engine — the exchange-side fill already happened as
