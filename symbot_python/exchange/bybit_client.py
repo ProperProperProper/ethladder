@@ -127,11 +127,12 @@ class BybitClient:
         self._precision_cache: dict[str, InstrumentPrecision] = {}
         self._leverage_set: dict[str, float] = {}
         self._position_cache: dict[str, Optional[PositionInfo]] = {}
+        self._margin_balance_cache: float = 0.0
 
     # -- connection / account -------------------------------------------------
 
     async def verify_connection(self) -> None:
-        unwrap(await call_with_timeout(asyncio.to_thread(self._session.get_wallet_balance, accountType="UNIFIED")))
+        await self.get_balance("USDT")
 
     async def get_balance(self, coin: Optional[str] = None) -> dict[str, float]:
         kwargs: dict[str, Any] = {"accountType": "UNIFIED"}
@@ -142,7 +143,14 @@ class BybitClient:
         for account in result.get("list", []):
             for entry in account.get("coin", []):
                 balances[entry["coin"]] = float(entry.get("walletBalance") or 0)
+                if entry["coin"] == "USDT":
+                    self._margin_balance_cache = balances[entry["coin"]]
         return balances
+
+    @property
+    def margin_balance(self) -> float:
+        """Cached USDT margin balance for equity sampling."""
+        return self._margin_balance_cache
 
     # -- leverage / position ---------------------------------------------------
 

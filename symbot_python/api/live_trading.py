@@ -266,8 +266,12 @@ async def _sample_equity(manager: DCABotManager, history: EquityHistory) -> None
                   if d.status == DealStatus.ACTIVE)
     # Booked net P/L includes paid entry/exit fees and settled funding.
     # Unsettled funding belongs to the still-open position until settlement.
-    realised = manager.exchange.margin_balance + position.margin_committed - history.start_balance
-    unrealised = position.qty * (ticker.last - position.avg_price) - funding
+    realised = manager.exchange.margin_balance - history.start_balance
+    if position:
+        realised += position.margin_committed
+        unrealised = position.qty * (ticker.last - position.avg_price) - funding
+    else:
+        unrealised = 0.0
     equity = history.start_balance + realised + unrealised
     history.record(time.time(), equity, realised, unrealised)
 
