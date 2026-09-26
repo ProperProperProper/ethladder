@@ -1112,7 +1112,6 @@ class TradingDataExporter:
         await self.export_paper_trading_data()
         self.export_backtest_data()
         await self.export_positions()
-        await self.export_reverse_trading()
         log.info("✓ All trading data exported")
 
 
