@@ -347,14 +347,16 @@ class DCABotEngine:
             self.pause(True, reason="order_verify_buy")
             return _Tick.RETRY, RETRY_INTERVAL_SEC
 
-        self.deal.orders[0] = replace(base, filled=1)
+        # Update order with actual fill price from Bybit (live must enter at current price)
+        actual_price = status.avg_price if status.avg_price > 0 else base.price
+        self.deal.orders[0] = replace(base, filled=1, price=actual_price)
         self.deal.filled_count = 1
         self.deal.is_start = 1
         # Trailing-stop extreme starts at the entry fill, then tracks the
         # low (short) or high (long) as ticks arrive — mirrors
         # backtest.py's per-bar OHLC initialization, adapted for a
         # tick-driven (no bars) live/paper feed.
-        self.deal.trail_high_price = base.price
+        self.deal.trail_high_price = actual_price
         # Funding is only ever charged for boundaries crossed AFTER the
         # deal opens — matches backtest.py's "skip any funding events
         # that already happened before this deal opened" behavior.
@@ -390,7 +392,9 @@ class DCABotEngine:
             self.pause(True, pause_buy=True, reason="order_verify_buy")
             return False
 
-        self.deal.orders[idx] = replace(rung, filled=1)
+        # Update order with actual fill price from Bybit (live must enter at current price)
+        actual_price = status.avg_price if status.avg_price > 0 else rung.price
+        self.deal.orders[idx] = replace(rung, filled=1, price=actual_price)
         self.deal.filled_count = idx + 1
         self.pause(False)
         return True
@@ -696,7 +700,8 @@ class DCABotEngine:
                 self.pause(True, pause_buy=True, reason="order_verify_buy")
                 return
 
-            logger.info(f"DIP safety order filled at {price:.2f}")
+            actual_price = status.avg_price if status.avg_price > 0 else price
+            logger.info(f"DIP safety order filled at {actual_price:.2f}")
             self.pause(False)
 
         except Exception as e:
