@@ -127,11 +127,12 @@ curl -X POST http://127.0.0.1:8000/v1/responses \
 ## 📊 Data Available
 
 ### Bot State
-- Open positions (paper & live)
-- Trading mode (disabled/trading/live)
+- Open positions (paper & live, unified manager)
+- Trading mode (unified: paper + live atomic execution)
 - System metrics (CPU, memory, disk)
-- Available balance ($117.76 USDT live balance, verified)
+- Available balance ($118+ USDT live balance, verified)
 - Equity sampling (session start → current P&L tracking)
+- Manager type: ONE DCABotManager with HybridExchangeClient
 
 ### OMLX Learning
 - Current bounce probability (%)

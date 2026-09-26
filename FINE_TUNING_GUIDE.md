@@ -9,10 +9,10 @@ The bot exports live data via an MCP bridge (`ethladder_bot_mcp.py`) that allows
 ### Available Data Endpoints
 
 1. **Bot State** (`get_ethladder_state`)
-   - Current positions (paper & live)
-   - Trading mode (disabled/live)
+   - Current positions (paper & live, unified execution)
+   - Trading mode (unified: paper + live atomic)
    - System metrics (CPU, memory, disk)
-   - Available balance
+   - Available balance (real Bybit account)
 
 2. **OMLX Learning** (`get_omlx_learning`)
    - 10-dimension bounce probability analysis
@@ -139,20 +139,34 @@ Goal: Identify which subsystem (OMLX/ML/params) needs tuning
 - P&L range: -2.2% to +2.97% per trade
 - Steady state achieved
 
-**Live Trading Status (v2.0.5):**
-- Real Bybit balance: $117.76 USDT
-- No open positions
-- Manual start/stop control (no auto-start)
-- Equity sampling: OPERATIONAL
+**Live Trading Status (v3.0 - Unified System):**
+- Real Bybit balance: $118+ USDT
+- Unified execution: Paper + Live start together (atomic)
+- NO manual Start/Stop buttons (removed per user)
+- ONE manager with HybridExchangeClient routing
+- Fill prices: Actual market price at execution (Bybit avg_price)
 - Fee efficiency: 85% savings via POST_ONLY limit orders (0.01% maker vs 0.06% taker)
 
-## 🔄 Training Loop
+## 🔄 Training Loop (Unified System)
 
-1. **Live trading** generates real trade outcomes
+**ONE manager, atomic execution:**
+
+1. **Unified trading** (paper + live together)
+   - Manager places orders simultaneously on both clients
+   - Real fills from Bybit (HybridExchangeClient)
+   - Paper simulation for backtesting
 2. **Trade memory** accumulates (deduplicated, 20k cap)
+   - Fed by both forward-tester and live/paper closes
+   - Atomically written to prevent corruption
 3. **ML trainer** retrains XGBoost every 2 min
+   - Uses REAL execution prices (status.avg_price)
+   - Position averages reflect actual Bybit fills
 4. **OMLX engine** calibrates bounce dimensions continuously
+   - DIP calibration records source (walk_forward/live_paper)
+   - 5,000 trades max, tagged by source
 5. **Walk-forward tester** validates params every 30 min
+   - Uses same DipCalibrationEngine as live
+   - Guarantees paper/backtest alignment
 6. **Best params** sync to live bot every 8 hours
 
 ## ⚠️ Important Notes
@@ -173,8 +187,15 @@ Goal: Identify which subsystem (OMLX/ML/params) needs tuning
 
 ## 📝 Version Info
 
-- Bot Version: 2.0+ (Live trading enabled)
-- OMLX Dimensions: 10 (full ensemble)
-- ML Models: XGBoost + RL Q-Learning
-- Walk-Forward Cycles: Continuous (14-day windows)
-- Trade Memory: 20,000 cap (atomic writes, deduplicated)
+- **Bot Version:** 3.0 (Unified Trading System)
+- **Entry Point:** ONE script (`run_everything.py`, 1929 lines)
+- **Architecture:** 10 background tasks (optimizer, forward-tester, ml-trainer, data-exporter, omlx-metrics, sqlite-saver, resource-monitor, pruner, log-watcher, inbox-extractor)
+- **Trading Manager:** ONE DCABotManager with HybridExchangeClient
+  - Paper client (simulated fills via live market data)
+  - Live client (real Bybit mainnet orders)
+  - Atomic dual execution (no mirroring, no sync delays)
+- **OMLX Dimensions:** 10 (full ensemble)
+- **ML Models:** XGBoost + RL Q-Learning
+- **Walk-Forward Cycles:** Continuous (14-day windows)
+- **Trade Memory:** 20,000 cap (atomic writes, deduplicated, both sources)
+- **Fill Prices:** Actual Bybit avg_price from order verification (not stale)
