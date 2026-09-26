@@ -35,6 +35,7 @@ PAIR = "ETH/USDT"
 _manager: Optional[DCABotManager] = None
 _trading_enabled: bool = False
 _param_sync_task: Optional[asyncio.Task] = None
+_reverse_paper = None  # Reverse trading tracker (for counter-trend trades)
 
 
 async def get_manager() -> DCABotManager:
@@ -73,6 +74,11 @@ async def get_manager() -> DCABotManager:
         # ONE manager using hybrid client
         _manager = DCABotManager(hybrid_client)
         await _manager.start()
+
+        # Initialize reverse paper trading (counter-trend tracking)
+        from symbot_python.exchange.reverse_paper import ReversePaper
+        global _reverse_paper
+        _reverse_paper = ReversePaper(paper_client, live_balance)
 
         # Sync with best winner params
         await _sync_params_with_winner(_manager)
