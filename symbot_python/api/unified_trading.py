@@ -90,27 +90,6 @@ async def get_manager() -> DCABotManager:
     return _manager
 
 
-async def start_unified_trading() -> dict:
-    """Start unified trading (both paper + live)."""
-    global _trading_enabled
-    _trading_enabled = True
-    if _manager is None:
-        try:
-            await get_manager()
-            return {"status": "started", "message": "Unified trading started (paper + live)"}
-        except Exception as e:
-            _trading_enabled = False
-            return {"status": "error", "message": str(e)}
-    return {"status": "already_running", "message": "Unified trading already running"}
-
-
-async def stop_unified_trading() -> dict:
-    """Stop unified trading."""
-    global _trading_enabled
-    _trading_enabled = False
-    return {"status": "stopped", "message": "Unified trading stopped"}
-
-
 async def close_all_positions() -> dict:
     """Close all open positions (live only, paper is simulation)."""
     global _manager
