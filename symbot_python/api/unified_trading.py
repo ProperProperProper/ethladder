@@ -58,9 +58,13 @@ async def get_manager() -> DCABotManager:
         logger.warning(f"🔴 UNIFIED TRADING ACTIVE 🔴 Live balance: ${live_balance:.2f}")
 
         # Create both clients
-        from symbot_python.exchange.bybit_client import BybitSession
-        market_session = BybitSession()  # Unauthenticated, public market data only
-        paper_client = PaperExchangeClient(market_session)
+        initial_balances = {"USDT": live_balance}
+        paper_client = await create_exchange_client(
+            TradingMode.PAPER, paper_initial_balances=initial_balances
+        )
+        if not isinstance(paper_client, PaperExchangeClient):
+            raise TypeError("Paper client creation failed")
+
         live_client = await create_exchange_client(TradingMode.LIVE)
 
         # Hybrid client routes orders to BOTH
