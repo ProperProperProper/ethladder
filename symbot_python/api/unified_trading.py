@@ -6,6 +6,9 @@ in one atomic call via HybridExchangeClient.
 
 Paper positions tracked in paper_client.
 Live positions tracked via Bybit's actual position state.
+
+Live trading starts automatically when paper trading starts.
+No separate Start/Stop controls — they run as one atomic system.
 """
 
 from __future__ import annotations
@@ -14,6 +17,8 @@ import asyncio
 import logging
 import time
 from typing import Optional
+
+from fastapi import APIRouter
 
 from symbot_python.exchange.base import TradingMode
 from symbot_python.exchange.factory import create_exchange_client
@@ -35,6 +40,8 @@ PAIR = "ETH/USDT"
 _manager: Optional[DCABotManager] = None
 _trading_enabled: bool = False
 _param_sync_task: Optional[asyncio.Task] = None
+
+router = APIRouter()
 
 
 async def get_manager() -> DCABotManager:
@@ -182,3 +189,12 @@ async def shutdown_manager() -> None:
         await _manager.exchange.close()
         await _manager.stop()
         _manager = None
+
+
+# -- API Routes (close positions only; Start/Stop removed per user request) --
+
+@router.post("/live/close-all-positions")
+async def close_all_positions_route() -> dict:
+    """Close all open live positions (paper remains for testing)."""
+    result = await close_all_positions()
+    return result

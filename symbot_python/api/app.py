@@ -24,7 +24,7 @@ from pybit.unified_trading import HTTP
 
 from symbot_python.api import console as console_module
 from symbot_python.api import inbox_candidates as inbox_candidates_module
-from symbot_python.api import live_trading as live_trading_module
+from symbot_python.api import unified_trading as unified_trading_module
 from symbot_python.api import optimizer_status as optimizer_status_module
 from symbot_python.api import paper as paper_module
 from symbot_python.api import winners as winners_module
@@ -61,14 +61,14 @@ async def lifespan(app: FastAPI):
     yield
     await asyncio.gather(
         paper_module.shutdown_manager(),
-        live_trading_module.shutdown_manager(),
+        unified_trading_module.shutdown_manager(),
         return_exceptions=True
     )
 
 
 app = FastAPI(title="EthLadder", lifespan=lifespan)
 app.include_router(paper_module.router)
-app.include_router(live_trading_module.router)
+app.include_router(unified_trading_module.router)
 app.include_router(winners_module.router)
 app.include_router(optimizer_status_module.router)
 app.include_router(console_module.router)
