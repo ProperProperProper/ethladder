@@ -1060,35 +1060,6 @@ class TradingDataExporter:
         except Exception as e:
             log.error("Error exporting positions: %s", e)
 
-    async def export_reverse_trading(self):
-        """Export real reverse-paper-trading state (the opposite-side
-        mirror wallet — symbot_python/exchange/reverse_paper.py)."""
-        try:
-            reverse = trading_module._reverse_paper
-            if reverse is None:
-                data = {"total_trades": 0, "win_rate": None, "total_pnl": 0, "conversion_rate": None, "reversal_patterns": []}
-            else:
-                manager = await trading_module.get_manager()
-                ticker = await manager.exchange.get_ticker(SYMBOL)
-                position = reverse.client.position(SYMBOL)
-                unrealized = position.qty * (ticker.last - position.avg_price) if position.qty else 0.0
-                equity = reverse.client.margin_balance + position.margin_committed + unrealized
-                fills = reverse.fills
-                failed = sum(1 for fill in fills if fill.error is not None)
-                data = {
-                    "total_trades": len(fills),
-                    "win_rate": None,  # fills are individual order mirrors, not paired closed trades — no win/loss label to give honestly
-                    "total_pnl": equity - reverse.initial_balance,
-                    "conversion_rate": ((len(fills) - failed) / len(fills) * 100) if fills else None,
-                    "failed_mirror_count": failed,
-                    "current_balance": reverse.client.margin_balance,
-                    "current_equity": equity,
-                    "reversal_patterns": [],
-                }
-            _atomic_write_json("reverse_trading_summary.json", data)
-            log.info("✓ Reverse trading: %d fills", data["total_trades"])
-        except Exception as e:
-            log.error("Error exporting reverse data: %s", e)
 
     def _write_default_paper(self):
         data = {"total_trades": 0, "win_rate": 0, "total_pnl": 0, "max_drawdown": 0, "recent_trades": []}
