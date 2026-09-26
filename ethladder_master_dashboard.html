@@ -528,10 +528,8 @@
                 Positions remain open on server restart. NEVER places reverse trades.
             </div>
             <div style="margin-bottom: 1rem; display: flex; gap: 0.8rem; flex-wrap: wrap;">
-                <button onclick="startLiveTrading()" style="background:#10b981;color:white;border:none;padding:0.6rem 1.2rem;border-radius:6px;cursor:pointer;font-weight:600;">▶ Start Trading</button>
-                <button onclick="stopLiveTrading()" style="background:#f59e0b;color:white;border:none;padding:0.6rem 1.2rem;border-radius:6px;cursor:pointer;font-weight:600;">⏸ Stop Trading</button>
                 <button onclick="closeAllPositions()" style="background:#ef4444;color:white;border:none;padding:0.6rem 1.2rem;border-radius:6px;cursor:pointer;font-weight:600;">❌ Close All Positions</button>
-                <span id="liveStatusBadge" style="padding:0.6rem 1.2rem;border-radius:6px;background:#8881;color:#fff;font-weight:600;align-self:center;">Status: Disabled</span>
+                <span id="liveStatusBadge" style="padding:0.6rem 1.2rem;border-radius:6px;background:#10b98144;color:#10b981;font-weight:600;align-self:center;">Status: Unified (Paper + Live)</span>
             </div>
             <div class="dashboard-grid">
                 <div class="card">
@@ -1301,25 +1299,7 @@
             }
         }
 
-        // Live Trading Controls
-        async function startLiveTrading() {
-            try {
-                await fetch('/live/start', { method: 'POST' });
-                updateLiveStatus();
-            } catch (e) {
-                console.error('Start failed:', e);
-            }
-        }
-
-        async function stopLiveTrading() {
-            try {
-                await fetch('/live/stop', { method: 'POST' });
-                updateLiveStatus();
-            } catch (e) {
-                console.error('Stop failed:', e);
-            }
-        }
-
+        // Live Trading Controls (Emergency close only)
         async function closeAllPositions() {
             if (!confirm('🚨 WARNING 🚨\n\nThis will IMMEDIATELY close ALL open positions on Bybit.\n\nAre you absolutely sure?')) return;
 
