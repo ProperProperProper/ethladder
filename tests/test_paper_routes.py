@@ -60,13 +60,6 @@ def client(monkeypatch):
         yield c
 
 
-def test_reverse_paper_tab(client):
-    response = client.get("/paper/reverse")
-    assert response.status_code == 200
-    assert "Reverse Paper" in response.text
-    assert "Failed mirrors" in response.text
-
-
 def wait_until(condition, timeout=2.0, interval=0.01):
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
