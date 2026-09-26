@@ -133,7 +133,10 @@ async def close_all_positions() -> dict:
 
 async def _sync_params_with_winner(manager: DCABotManager) -> None:
     """Sync manager bot with latest winner params."""
-    result = get_best_current_winner()
+    from symbot_python.strategy.optimization_store import connect
+    conn = connect()
+    result = get_best_current_winner(conn, SYMBOL)
+    conn.close()
     if not result:
         logger.info("No winner yet, using fallback params")
         config = {
