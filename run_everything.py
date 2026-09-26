@@ -171,8 +171,7 @@ from symbot_python.exchange import inbox_pattern_extractor  # noqa: E402
 # continuous_optimizer.py and the forward tester both used.
 from symbot_python.api.app import app as fastapi_app, fetch_klines  # noqa: E402
 from symbot_python.strategy.models import DealStatus  # noqa: E402
-from symbot_python.api import paper as paper_module  # noqa: E402
-from symbot_python.api import live_trading as live_trading_module  # noqa: E402
+from symbot_python.api import unified_trading as trading_module  # noqa: E402
 
 configure_logging(log_file=log_file_unless_testing(REPO_ROOT / "logs" / "run_everything.log"))
 log = logging.getLogger("run_everything")
@@ -874,7 +873,7 @@ class TradingDataExporter:
     was true from then on — a real user could watch the Position
     Tracking tab and see what looked like a genuine open position that
     never existed. All three now pull real state from
-    paper_module.get_manager() (and _reverse_paper) — an empty list/
+    trading_module.get_manager() (and _reverse_paper) — an empty list/
     zero counts when nothing is genuinely open is the honest result,
     not something to paper over with placeholder data.
     """
@@ -885,7 +884,7 @@ class TradingDataExporter:
     async def export_paper_trading_data(self):
         """Export real paper trading session results."""
         try:
-            manager = await paper_module.get_manager()
+            manager = await trading_module.get_manager()
             closed = [
                 d for d in manager.deals.values()
                 if d.status == DealStatus.CLOSED and d.sell_data
@@ -993,7 +992,7 @@ class TradingDataExporter:
 
             # Get ticker once for unrealized PnL calculations
             try:
-                paper_mgr = await paper_module.get_manager()
+                paper_mgr = await trading_module.get_manager()
                 ticker = await paper_mgr.exchange.get_ticker(SYMBOL)
                 current_price = ticker.last
             except Exception:
@@ -1001,7 +1000,7 @@ class TradingDataExporter:
 
             # Export paper trading positions
             try:
-                paper_mgr = await paper_module.get_manager()
+                paper_mgr = await trading_module.get_manager()
                 open_deals = [d for d in paper_mgr.deals.values() if d.status == DealStatus.ACTIVE]
                 for deal in open_deals:
                     bot = deal.config or paper_mgr.bots.get(deal.bot_id)
@@ -1028,8 +1027,8 @@ class TradingDataExporter:
 
             # Export live trading positions from Bybit (only if manager exists, don't auto-init)
             try:
-                if live_trading_module._manager is not None:
-                    live_mgr = live_trading_module._manager
+                if trading_module._manager is not None:
+                    live_mgr = trading_module._manager
                     live_open_deals = [d for d in live_mgr.deals.values() if d.status == DealStatus.ACTIVE]
                     for deal in live_open_deals:
                         bot = deal.config or live_mgr.bots.get(deal.bot_id)
@@ -1065,11 +1064,11 @@ class TradingDataExporter:
         """Export real reverse-paper-trading state (the opposite-side
         mirror wallet — symbot_python/exchange/reverse_paper.py)."""
         try:
-            reverse = paper_module._reverse_paper
+            reverse = trading_module._reverse_paper
             if reverse is None:
                 data = {"total_trades": 0, "win_rate": None, "total_pnl": 0, "conversion_rate": None, "reversal_patterns": []}
             else:
-                manager = await paper_module.get_manager()
+                manager = await trading_module.get_manager()
                 ticker = await manager.exchange.get_ticker(SYMBOL)
                 position = reverse.client.position(SYMBOL)
                 unrealized = position.qty * (ticker.last - position.avg_price) if position.qty else 0.0
@@ -1911,7 +1910,7 @@ async def unified_lifespan(app):
         for task in background.values():
             task.cancel()
         await asyncio.gather(*background.values(), return_exceptions=True)
-        await paper_module.shutdown_manager()
+        await trading_module.shutdown_manager()
 
         # Real bug this fixes: two SIGSEGV crashes (confirmed via macOS
         # crash reports — EXC_BAD_ACCESS, faulting thread
