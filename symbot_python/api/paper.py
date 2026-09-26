@@ -31,7 +31,6 @@ from symbot_python.api.equity import EquityHistory
 from symbot_python.exchange.base import TradingMode
 from symbot_python.exchange.factory import create_exchange_client
 from symbot_python.exchange.paper_client import PaperExchangeClient
-from symbot_python.exchange.reverse_paper import ReversePaper
 from symbot_python.logging_setup import MELBOURNE_TZ
 from symbot_python.exchange.keychain import fetch_real_balance
 from symbot_python.strategy.dca_bot_manager import DCABotManager
@@ -114,7 +113,6 @@ _last_param_sync: Optional[dict] = None  # for display: where the current params
 # session baseline, same as restarting resets all other paper state.
 _session_start_balance: Optional[float] = None
 _session_start_time: Optional[float] = None
-_reverse_paper: Optional[ReversePaper] = None
 
 
 
@@ -147,7 +145,7 @@ async def get_manager() -> DCABotManager:
     balance is below MIN_USABLE_BALANCE_USDT — see those constants'
     comments.
     """
-    global _manager, _refresh_task, _session_start_balance, _session_start_time, _equity_task, _equity_history, _reverse_paper
+    global _manager, _refresh_task, _session_start_balance, _session_start_time, _equity_task, _equity_history
     if _manager is None:
         balance = await fetch_real_balance()
         starting_balance = balance.total_available_balance
@@ -165,7 +163,6 @@ async def get_manager() -> DCABotManager:
         )
         if not isinstance(client, PaperExchangeClient):
             raise TypeError("Paper manager requires a paper-only exchange client")
-        _reverse_paper = ReversePaper(client, starting_balance)
         _manager = DCABotManager(client)
         _session_start_balance = starting_balance
         _session_start_time = time.time()
@@ -178,7 +175,7 @@ async def get_manager() -> DCABotManager:
 
 
 async def shutdown_manager() -> None:
-    global _manager, _refresh_task, _equity_task, _reverse_paper
+    global _manager, _refresh_task, _equity_task
     if _equity_task is not None:
         _equity_task.cancel()
         await asyncio.gather(_equity_task, return_exceptions=True)
@@ -195,7 +192,6 @@ async def shutdown_manager() -> None:
             await asyncio.to_thread(close)
         await _manager.stop()
         _manager = None
-        _reverse_paper = None
 
 
 async def _sample_equity(manager: DCABotManager, history: EquityHistory) -> None:
@@ -584,29 +580,6 @@ async def paper_page(request: Request):
     manager = await get_manager()
     context = await _view_context(manager, None)
     return templates.TemplateResponse(request, "paper.html", context)
-
-
-@router.get("/paper/reverse", response_class=HTMLResponse)
-async def reverse_paper_page(request: Request):
-    """Read-only view of opposite-side fills in a separate simulated wallet."""
-    manager = await get_manager()
-    reverse = _reverse_paper
-    if reverse is None:
-        raise RuntimeError("Reverse paper account unavailable")
-    ticker = await manager.exchange.get_ticker(SYMBOL)
-    position = reverse.client.position(SYMBOL)
-    unrealized = position.qty * (ticker.last - position.avg_price)
-    equity = reverse.client.margin_balance + position.margin_committed + unrealized
-    return templates.TemplateResponse(request, "reverse_paper.html", {
-        "initial_balance": reverse.initial_balance,
-        "balance": reverse.client.margin_balance,
-        "equity": equity,
-        "position": position,
-        "unrealized": unrealized,
-        "fills": list(reversed(reverse.fills[-100:])),
-        "failed_count": sum(fill.error is not None for fill in reverse.fills),
-        "price": ticker.last,
-    })
 
 
 @router.get("/paper/equity", response_class=HTMLResponse)

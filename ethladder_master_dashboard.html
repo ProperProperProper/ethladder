@@ -324,7 +324,6 @@
             <button class="tab-button" onclick="switchTab('live')">🔴 Live Trading</button>
             <button class="tab-button" onclick="switchTab('backtest')">📊 Backtest Results</button>
             <button class="tab-button" onclick="switchTab('positions')">📍 Position Tracking</button>
-            <button class="tab-button" onclick="switchTab('reverse')">↩️ Reverse Trading</button>
             <button class="tab-button" onclick="switchTab('analytics')">📈 Analytics</button>
             <button class="tab-button" onclick="switchTab('funds')">💰 Funds Utilization</button>
             <button class="tab-button" onclick="switchTab('system')">🖥️ System</button>
@@ -705,52 +704,6 @@
             </div>
         </div>
 
-        <!-- Tab: Reverse Trading -->
-        <div id="reverse" class="tab-content">
-            <div class="dashboard-grid">
-                <div class="card">
-                    <div class="card-header">
-                        <span class="card-title">↩️ Reverse Trades</span>
-                    </div>
-                    <div class="card-value" id="reverseTrades">--</div>
-                    <div class="card-subtext">Counter-trend entries</div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <span class="card-title">✅ Reverse Win Rate</span>
-                    </div>
-                    <div class="card-value" id="reverseWinRate">--</div>
-                    <div class="card-subtext">Success on reversals</div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <span class="card-title">💰 Reverse P&L</span>
-                    </div>
-                    <div class="card-value" id="reversePnL">--</div>
-                    <div class="card-subtext">Profit from reversals</div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <span class="card-title">🎯 Conversion Rate</span>
-                    </div>
-                    <div class="card-value" id="reverseConversion">--</div>
-                    <div class="card-subtext">Trend reverse success</div>
-                </div>
-            </div>
-
-            <div class="dashboard-grid full">
-                <div class="card">
-                    <div class="card-header">
-                        <span class="card-title">Reverse Trade Analysis</span>
-                    </div>
-                    <div class="data-list" id="reverseAnalysis"></div>
-                </div>
-            </div>
-        </div>
-
         <!-- Tab: Analytics -->
         <div id="analytics" class="tab-content">
             <div class="dashboard-grid wide">
@@ -1036,7 +989,6 @@
                     fetchJSON('paper_trading_summary.json'),
                     fetchJSON('/api/optimizer-status'),
                     fetchJSON('positions.json'),
-                    fetchJSON('reverse_trading_summary.json'),
                     fetchJSON('system_metrics.json')
                 ]);
 
@@ -1273,13 +1225,6 @@
                         document.getElementById('positionsBody').innerHTML = posHtml || '<tr><td colspan="7" style="text-align: center; color: var(--text-tertiary);">No open positions</td></tr>';
                         lastData.positions = JSON.stringify(positions);
                     }
-                }
-
-                if (revData) {
-                    updateElement('reverseTrades', (revData.total_trades || 0).toString());
-                    updateElement('reverseWinRate', `${(revData.win_rate || 0).toFixed(1)}%`);
-                    updateElement('reversePnL', `${(revData.total_pnl || 0) >= 0 ? '+' : ''}${(revData.total_pnl || 0).toFixed(2)}%`);
-                    updateElement('reverseConversion', `${(revData.conversion_rate || 0).toFixed(1)}%`);
                 }
 
                 if (system?.current) {
